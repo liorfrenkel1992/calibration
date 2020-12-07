@@ -210,8 +210,8 @@ if __name__ == "__main__":
 
     if args.gpu is True:
         net.cuda()
-        net = torch.nn.DataParallel(
-            net, device_ids=range(torch.cuda.device_count()))
+        #net = torch.nn.DataParallel(
+        #    net, device_ids=range(torch.cuda.device_count()))
         cudnn.benchmark = True
 
     start_epoch = 0
