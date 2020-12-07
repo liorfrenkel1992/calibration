@@ -210,14 +210,14 @@ if __name__ == "__main__":
 
     if args.gpu is True:
         net.cuda()
-        #net = torch.nn.DataParallel(
-        #    net, device_ids=range(torch.cuda.device_count()))
+        net = torch.nn.DataParallel(
+            net, device_ids=range(torch.cuda.device_count()))
         cudnn.benchmark = True
 
     start_epoch = 0
     num_epochs = args.epoch
     if args.load:
-        net.load_state_dict(torch.load(args.save_loc + args.saved_model_name))
+        net.load_state_dict(torch.load(args.save_loc + args.saved_model_name), strict=False)
         start_epoch = int(args.saved_model_name[args.saved_model_name.rfind('_')+1:args.saved_model_name.rfind('.model')])
 
     if args.optimiser == "sgd":
