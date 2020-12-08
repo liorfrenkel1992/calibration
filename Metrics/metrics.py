@@ -176,6 +176,8 @@ class ECELoss(nn.Module):
         accuracies = predictions.eq(labels)
 
         ece = torch.zeros(1, device=logits.device)
+        print(logits.size())
+        #ece = torch.zeros(logits.size(), device=logits.device)
         for bin_lower, bin_upper in zip(self.bin_lowers, self.bin_uppers):
             # Calculated |confidence - accuracy| in each bin
             in_bin = confidences.gt(bin_lower.item()) * confidences.le(bin_upper.item())
