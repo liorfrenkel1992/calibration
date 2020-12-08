@@ -93,6 +93,8 @@ def parseArgs():
                         dest="cross_validation_error", help='Error function to do temp scaling')
     parser.add_argument("-log", action="store_true", dest="log",
                         help="whether to print log data")
+    parser.add_argument("-class_ece", action="store_true", dest="class_ece",
+                        help="whether to use ece for each class separately")
 
     return parser.parse_args()
 
@@ -150,7 +152,7 @@ if __name__ == "__main__":
             split='val',
             batch_size=args.test_batch_size,
             pin_memory=args.gpu)
-    else:
+    elif not args.class_ece:
         _, val_loader = dataset_loader[args.dataset].get_train_valid_loader(
             batch_size=args.train_batch_size,
             augment=args.data_aug,
@@ -159,6 +161,18 @@ if __name__ == "__main__":
         )
 
         test_loader = dataset_loader[args.dataset].get_test_loader(
+            batch_size=args.test_batch_size,
+            pin_memory=args.gpu
+        )
+    else:
+         _, val_loader = dataset_loader[args.dataset].get_train_valid_loader(
+            batch_size=args.train_batch_size,
+            augment=args.data_aug,
+            random_seed=1,
+            pin_memory=args.gpu
+        )
+
+        test_loader = dataset_loader[args.dataset].get_ordered_test_loader(
             batch_size=args.test_batch_size,
             pin_memory=args.gpu
         )
