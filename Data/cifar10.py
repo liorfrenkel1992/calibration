@@ -119,11 +119,34 @@ def get_train_valid_loader(batch_size,
     else:
         return (train_loader, valid_loader)
 
+    data_loader = torch.utils.data.DataLoader(
+        dataset, batch_size=batch_size, shuffle=shuffle,
+        num_workers=num_workers, pin_memory=pin_memory,
+  
+def order_ds(dataset):
+      all_indices = {}
+      class_idxs = {}
+      for label dataset.class_to_idx:
+        all_indices[label] = []
+        class_idxs[label] = dataset.class_to_idx[label])
 
-def get_test_loader(batch_size,
-                    shuffle=True,
-                    num_workers=4,
-                    pin_memory=False):
+      for i in range(len(dataset)):
+        current_class = dataset[i][1]
+        for label dataset.class_to_idx:
+          if current_class == class_idxs[label]:
+            all_indices[label].append(i)
+            break
+      indices = []
+      for class in all_indices:
+        indices += all_indices[class]
+      new_dataset = Subset(dataset, indices)
+
+      return new_dataset
+      
+def get_ordered_test_loader(batch_size,
+                              shuffle=False,
+                              num_workers=4,
+                              pin_memory=False):
     """
     Utility function for loading and returning a multi-process
     test iterator over the CIFAR-10 dataset.
@@ -155,7 +178,52 @@ def get_test_loader(batch_size,
         root=data_dir, train=False,
         download=True, transform=transform,
     )
+    
+    new_ds = order_ds(dataset)
 
+    data_loader = torch.utils.data.DataLoader(
+        new_ds, batch_size=batch_size, shuffle=shuffle,
+        num_workers=num_workers, pin_memory=pin_memory,
+    )
+
+    return data_loader
+
+def get_test_loader(batch_size,
+                      shuffle=True,
+                      num_workers=4,
+                      pin_memory=False):
+    """
+    Utility function for loading and returning a multi-process
+    test iterator over the CIFAR-10 dataset.
+    If using CUDA, num_workers should be set to 1 and pin_memory to True.
+    Params
+    ------
+    - batch_size: how many samples per batch to load.
+    - shuffle: whether to shuffle the dataset after every epoch.
+    - num_workers: number of subprocesses to use when loading the dataset.
+    - pin_memory: whether to copy tensors into CUDA pinned memory. Set it to
+      True if using GPU.
+    Returns
+    -------
+    - data_loader: test set iterator.
+    """
+    normalize = transforms.Normalize(
+        mean=[0.4914, 0.4822, 0.4465],
+        std=[0.2023, 0.1994, 0.2010],
+    )
+
+    # define transform
+    transform = transforms.Compose([
+        transforms.ToTensor(),
+        normalize,
+    ])
+
+    data_dir = './data'
+    dataset = datasets.CIFAR10(
+        root=data_dir, train=False,
+        download=True, transform=transform,
+    )
+    
     data_loader = torch.utils.data.DataLoader(
         dataset, batch_size=batch_size, shuffle=shuffle,
         num_workers=num_workers, pin_memory=pin_memory,
