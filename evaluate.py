@@ -100,17 +100,38 @@ def parseArgs():
 
 
 def get_logits_labels(data_loader, net):
-    logits_list = []
-    labels_list = []
-    net.eval()
-    with torch.no_grad():
-        for data, label in data_loader:
-            data = data.cuda()
-            logits = net(data)
-            logits_list.append(logits)
-            labels_list.append(label)
-        logits = torch.cat(logits_list).cuda()
-        labels = torch.cat(labels_list).cuda()
+    if args.class_ece:
+        logits_list = []
+        labels_list = []
+        for label in dataset.class_to_idx:
+            all_indices[label] = []
+            class_idxs[label] = dataset.class_to_idx[label])
+            net.eval()
+        with torch.no_grad():
+            for data, label in data_loader:
+                current_class = dataset[i][1]
+                for label in dataset.class_to_idx:
+                  if current_class == class_idxs[label]:
+                    all_indices[label].append(i)
+                    break
+                data = data.cuda()
+                logits = net(data)
+                logits_list.append(logits)
+                labels_list.append(label)
+            logits = torch.cat(logits_list).cuda()
+            labels = torch.cat(labels_list).cuda()
+    else:
+        logits_list = []
+        labels_list = []
+        net.eval()
+        with torch.no_grad():
+            for data, label in data_loader:
+                data = data.cuda()
+                logits = net(data)
+                logits_list.append(logits)
+                labels_list.append(label)
+            logits = torch.cat(logits_list).cuda()
+            labels = torch.cat(labels_list).cuda()
     return logits, labels
 
 
@@ -190,7 +211,7 @@ if __name__ == "__main__":
     adaece_criterion = AdaptiveECELoss().cuda()
     cece_criterion = ClasswiseECELoss().cuda()
 
-    logits, labels = get_logits_labels(test_loader, net)
+    logits, labels = get_logits_labels(args, test_loader, net)
     conf_matrix, p_accuracy, _, _, _ = test_classification_net_logits(logits, labels)
 
     p_ece = ece_criterion(logits, labels).item()
