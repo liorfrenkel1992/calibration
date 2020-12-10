@@ -126,13 +126,13 @@ def get_train_valid_loader(batch_size,
 def order_ds(dataset):
       all_indices = {}
       class_idxs = {}
-      for label dataset.class_to_idx:
+      for label in dataset.class_to_idx:
         all_indices[label] = []
         class_idxs[label] = dataset.class_to_idx[label])
 
       for i in range(len(dataset)):
         current_class = dataset[i][1]
-        for label dataset.class_to_idx:
+        for label in dataset.class_to_idx:
           if current_class == class_idxs[label]:
             all_indices[label].append(i)
             break
