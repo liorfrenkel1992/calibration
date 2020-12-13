@@ -140,8 +140,8 @@ def order_ds(dataset):
             all_indices[label].append(i)
             break
       indices = []
-      for class in all_indices:
-        indices += all_indices[class]
+      for label in all_indices:
+        indices += all_indices[label]
       new_dataset = Subset(dataset, indices)
 
       return new_dataset
