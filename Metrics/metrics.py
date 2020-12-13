@@ -278,6 +278,7 @@ class ClassECELoss(nn.Module):
         for i in range(num_classes):
             class_confidences = softmaxes[:, i]
             class_choices = choices[labels.eq(i)]
+            print(class_choices)
             class_choices = torch.sum(class_choices[class_choices.eq(i)])
             class_accuracy = class_choices / torch.sum(labels.eq(i))
             class_sce = torch.zeros(1, device=logits.device)
