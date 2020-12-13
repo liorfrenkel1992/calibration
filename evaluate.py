@@ -206,7 +206,7 @@ if __name__ == "__main__":
     net.cuda()
     net = torch.nn.DataParallel(net, device_ids=range(torch.cuda.device_count()))
     cudnn.benchmark = True
-    net.load_state_dict(torch.load(args.save_loc + args.saved_model_name))
+    net.load_state_dict(torch.load(args.save_loc + args.saved_model_name), strict=False)
 
     nll_criterion = nn.CrossEntropyLoss().cuda()
     ece_criterion = ECELoss().cuda()
