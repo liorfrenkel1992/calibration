@@ -180,13 +180,11 @@ if __name__ == "__main__":
             batch_size=args.train_batch_size,
             augment=args.data_aug,
             random_seed=1,
-            pin_memory=args.gpu
-        )
+            pin_memory=args.gpu)
 
-        test_loader = dataset_loader[args.dataset].get_test_loader(
+         test_loader = dataset_loader[args.dataset].get_test_loader(
             batch_size=args.test_batch_size,
-            pin_memory=args.gpu
-        )
+            pin_memory=args.gpu)
 
     """
     elif not args.class_ece:
