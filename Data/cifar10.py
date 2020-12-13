@@ -131,7 +131,7 @@ def order_ds(dataset):
       class_idxs = {}
       for label in dataset.class_to_idx:
         all_indices[label] = []
-        class_idxs[label] = dataset.class_to_idx[label])
+        class_idxs[label] = dataset.class_to_idx[label]
 
       for i in range(len(dataset)):
         current_class = dataset[i][1]
