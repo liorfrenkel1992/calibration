@@ -263,7 +263,7 @@ class ClassECELoss(nn.Module):
     Compute Classwise ECE
     '''
     def __init__(self, n_bins=15):
-        super(ClasswiseECELoss, self).__init__()
+        super(ClassECELoss, self).__init__()
         bin_boundaries = torch.linspace(0, 1, n_bins + 1)
         self.bin_lowers = bin_boundaries[:-1]
         self.bin_uppers = bin_boundaries[1:]
