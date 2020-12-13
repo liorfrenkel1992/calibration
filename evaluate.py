@@ -220,7 +220,7 @@ if __name__ == "__main__":
     p_ece = ece_criterion(logits, labels).item()
     p_adaece = adaece_criterion(logits, labels).item()
     p_cece = cece_criterion(logits, labels).item()
-    p_csece, p_conf = csece_criterion(logits, labels)
+    p_csece, p_acc = csece_criterion(logits, labels)
     p_nll = nll_criterion(logits, labels).item()
 
     res_str = '{:s}&{:.4f}&{:.4f}&{:.4f}&{:.4f}&{:.4f}'.format(saved_model_name,  1-p_accuracy,  p_nll,  p_ece,  p_adaece, p_cece)
@@ -234,7 +234,7 @@ if __name__ == "__main__":
         print ('AdaECE: ' + str(p_adaece))
         print ('Classwise ECE: ' + str(p_cece))
         print ('Classes ECE: ' + str(p_csece))
-        print ('Classes confidences: ' + str(p_conf))
+        print ('Classes confidences: ' + str(p_acc))
 
 
     scaled_model = ModelWithTemperature(net, args.log)
@@ -246,7 +246,7 @@ if __name__ == "__main__":
     ece = ece_criterion(logits, labels).item()
     adaece = adaece_criterion(logits, labels).item()
     cece = cece_criterion(logits, labels).item()
-    csece, confidences = csece_criterion(logits, labels)
+    csece, accuracies = csece_criterion(logits, labels)
     nll = nll_criterion(logits, labels).item()
 
     res_str += '&{:.4f}({:.2f})&{:.4f}&{:.4f}&{:.4f}'.format(nll,  T_opt,  ece,  adaece, cece)
@@ -260,7 +260,7 @@ if __name__ == "__main__":
         print ('AdaECE: ' + str(adaece))
         print ('Classwise ECE: ' + str(cece))
         print ('Classes ECE: ' + str(csece))
-        print ('Classes confidences: ' + str(confidences))
+        print ('Classes confidences: ' + str(accuracies))
 
     # Test NLL & ECE & AdaECE & Classwise ECE
     print(res_str)
