@@ -20,7 +20,7 @@ from Net.densenet import densenet121
 
 # Import metrics to compute
 from Metrics.metrics import test_classification_net_logits
-from Metrics.metrics import ECELoss, AdaptiveECELoss, ClasswiseECELoss
+from Metrics.metrics import ECELoss, AdaptiveECELoss, ClasswiseECELoss, ClassECELoss
 
 # Import temperature scaling and NLL utilities
 from temperature_scaling import ModelWithTemperature
@@ -100,6 +100,7 @@ def parseArgs():
 
 
 def get_logits_labels(data_loader, net):
+    """
     if args.class_ece:
         logits_list = []
         labels_list = []
@@ -121,17 +122,18 @@ def get_logits_labels(data_loader, net):
             logits = torch.cat(logits_list).cuda()
             labels = torch.cat(labels_list).cuda()
     else:
-        logits_list = []
-        labels_list = []
-        net.eval()
-        with torch.no_grad():
-            for data, label in data_loader:
-                data = data.cuda()
-                logits = net(data)
-                logits_list.append(logits)
-                labels_list.append(label)
-            logits = torch.cat(logits_list).cuda()
-            labels = torch.cat(labels_list).cuda()
+    """
+    logits_list = []
+    labels_list = []
+    net.eval()
+    with torch.no_grad():
+        for data, label in data_loader:
+            data = data.cuda()
+            logits = net(data)
+            logits_list.append(logits)
+            labels_list.append(label)
+        logits = torch.cat(logits_list).cuda()
+        labels = torch.cat(labels_list).cuda()
     return logits, labels
 
 
@@ -173,6 +175,7 @@ if __name__ == "__main__":
             split='val',
             batch_size=args.test_batch_size,
             pin_memory=args.gpu)
+    """
     elif not args.class_ece:
         _, val_loader = dataset_loader[args.dataset].get_train_valid_loader(
             batch_size=args.train_batch_size,
@@ -185,6 +188,7 @@ if __name__ == "__main__":
             batch_size=args.test_batch_size,
             pin_memory=args.gpu
         )
+    """
     else:
          _, val_loader = dataset_loader[args.dataset].get_train_valid_loader(
             batch_size=args.train_batch_size,
@@ -193,7 +197,7 @@ if __name__ == "__main__":
             pin_memory=args.gpu
         )
 
-        test_loader = dataset_loader[args.dataset].get_ordered_test_loader(
+        test_loader = dataset_loader[args.dataset].get_test_loader(
             batch_size=args.test_batch_size,
             pin_memory=args.gpu
         )
@@ -210,6 +214,7 @@ if __name__ == "__main__":
     ece_criterion = ECELoss().cuda()
     adaece_criterion = AdaptiveECELoss().cuda()
     cece_criterion = ClasswiseECELoss().cuda()
+    csece_criterion = ClassECELoss().cuda()
 
     logits, labels = get_logits_labels(args, test_loader, net)
     conf_matrix, p_accuracy, _, _, _ = test_classification_net_logits(logits, labels)
@@ -217,9 +222,10 @@ if __name__ == "__main__":
     p_ece = ece_criterion(logits, labels).item()
     p_adaece = adaece_criterion(logits, labels).item()
     p_cece = cece_criterion(logits, labels).item()
+    p_csece = csece_criterion(logits, labels)
     p_nll = nll_criterion(logits, labels).item()
 
-    res_str = '{:s}&{:.4f}&{:.4f}&{:.4f}&{:.4f}&{:.4f}'.format(saved_model_name,  1-p_accuracy,  p_nll,  p_ece,  p_adaece, p_cece)
+    res_str = '{:s}&{:.4f}&{:.4f}&{:.4f}&{:.4f}&{:.4f}'.format(saved_model_name,  1-p_accuracy,  p_nll,  p_ece,  p_adaece, p_cece, p_csece)
 
     # Printing the required evaluation metrics
     if args.log:
