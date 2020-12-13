@@ -245,9 +245,10 @@ if __name__ == "__main__":
     ece = ece_criterion(logits, labels).item()
     adaece = adaece_criterion(logits, labels).item()
     cece = cece_criterion(logits, labels).item()
+    csece = csece_criterion(logits, labels)
     nll = nll_criterion(logits, labels).item()
 
-    res_str += '&{:.4f}({:.2f})&{:.4f}&{:.4f}&{:.4f}'.format(nll,  T_opt,  ece,  adaece, cece)
+    res_str += '&{:.4f}({:.2f})&{:.4f}&{:.4f}&{:.4f}'.format(nll,  T_opt,  ece,  adaece, cece, csece)
 
     if args.log:
         print ('Optimal temperature: ' + str(T_opt))
@@ -257,6 +258,7 @@ if __name__ == "__main__":
         print ('ECE: ' + str(ece))
         print ('AdaECE: ' + str(adaece))
         print ('Classwise ECE: ' + str(cece))
+        print ('Classwise ECE: ' + str(csece))
 
     # Test NLL & ECE & AdaECE & Classwise ECE
     print(res_str)
