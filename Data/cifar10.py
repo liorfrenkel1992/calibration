@@ -122,6 +122,9 @@ def get_train_valid_loader(batch_size,
     data_loader = torch.utils.data.DataLoader(
         dataset, batch_size=batch_size, shuffle=shuffle,
         num_workers=num_workers, pin_memory=pin_memory,
+    )
+
+    return data_loader
   
 def order_ds(dataset):
       all_indices = {}
