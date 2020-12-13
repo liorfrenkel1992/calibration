@@ -175,6 +175,19 @@ if __name__ == "__main__":
             split='val',
             batch_size=args.test_batch_size,
             pin_memory=args.gpu)
+    else:
+         _, val_loader = dataset_loader[args.dataset].get_train_valid_loader(
+            batch_size=args.train_batch_size,
+            augment=args.data_aug,
+            random_seed=1,
+            pin_memory=args.gpu
+        )
+
+        test_loader = dataset_loader[args.dataset].get_test_loader(
+            batch_size=args.test_batch_size,
+            pin_memory=args.gpu
+        )
+
     """
     elif not args.class_ece:
         _, val_loader = dataset_loader[args.dataset].get_train_valid_loader(
@@ -189,19 +202,6 @@ if __name__ == "__main__":
             pin_memory=args.gpu
         )
     """
-    else:
-         _, val_loader = dataset_loader[args.dataset].get_train_valid_loader(
-            batch_size=args.train_batch_size,
-            augment=args.data_aug,
-            random_seed=1,
-            pin_memory=args.gpu
-        )
-
-        test_loader = dataset_loader[args.dataset].get_test_loader(
-            batch_size=args.test_batch_size,
-            pin_memory=args.gpu
-        )
-
     model = models[model_name]
 
     net = model(num_classes=num_classes, temp=1.0)
@@ -235,6 +235,7 @@ if __name__ == "__main__":
         print ('ECE: ' + str(p_ece))
         print ('AdaECE: ' + str(p_adaece))
         print ('Classwise ECE: ' + str(p_cece))
+        print ('Classes ECE: ' + str(p_csece))
 
 
     scaled_model = ModelWithTemperature(net, args.log)
