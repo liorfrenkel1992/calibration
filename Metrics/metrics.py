@@ -272,11 +272,14 @@ class ClassECELoss(nn.Module):
         num_classes = int((torch.max(labels) + 1).item())
         softmaxes = F.softmax(logits, dim=1)
         per_class_sce = None
+        choices = torch.argmax(softmaxes, dim=1)
+        classes_acc = None
 
         for i in range(num_classes):
             class_confidences = softmaxes[:, i]
-            choices = softmaxes[
-            class_accuracy = torch.sum(labels.eq(i))
+            class_choices = choices[labels.eq(i)]
+            class_choices = torch.sum(class_choices[class_choices.eq(i)])
+            class_accuracy = class_choices / torch.sum(labels.eq(i))
             class_sce = torch.zeros(1, device=logits.device)
             labels_in_class = labels.eq(i) # one-hot vector of all positions where the label belongs to the class i
 
@@ -290,7 +293,9 @@ class ClassECELoss(nn.Module):
 
             if (i == 0):
                 per_class_sce = class_sce
+                classes_acc = class_accuracy
             else:
                 per_class_sce = torch.cat((per_class_sce, class_sce), dim=0)
+                classes_acc = torch.cat((classes_acc, class_accuracy), dim=0)
 
-        return per_class_sce, softmaxes.mean(dim=0)
+        return per_class_sce, classes_acc
