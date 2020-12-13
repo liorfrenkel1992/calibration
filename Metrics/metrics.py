@@ -273,7 +273,7 @@ class ClassECELoss(nn.Module):
         softmaxes = F.softmax(logits, dim=1)
         per_class_sce = None
         choices = torch.argmax(softmaxes, dim=1)
-        classes_acc = None
+        classes_acc = []
 
         for i in range(num_classes):
             class_confidences = softmaxes[:, i]
@@ -293,9 +293,9 @@ class ClassECELoss(nn.Module):
 
             if (i == 0):
                 per_class_sce = class_sce
-                classes_acc = class_accuracy
             else:
                 per_class_sce = torch.cat((per_class_sce, class_sce), dim=0)
-                classes_acc = torch.cat((classes_acc, class_accuracy), dim=0)
+            
+            classes_acc.append(class_accuracy)
 
         return per_class_sce, classes_acc
