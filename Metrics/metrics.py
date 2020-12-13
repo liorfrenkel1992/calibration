@@ -291,4 +291,4 @@ class ClassECELoss(nn.Module):
             else:
                 per_class_sce = torch.cat((per_class_sce, class_sce), dim=0)
 
-        return per_class_sce, softmaxes.mean()
+        return per_class_sce, softmaxes.mean(dim=0)
