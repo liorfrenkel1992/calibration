@@ -258,7 +258,7 @@ if __name__ == "__main__":
         print ('ECE: ' + str(ece))
         print ('AdaECE: ' + str(adaece))
         print ('Classwise ECE: ' + str(cece))
-        print ('Classwise ECE: ' + str(csece))
+        print ('Classes ECE: ' + str(csece))
 
     # Test NLL & ECE & AdaECE & Classwise ECE
     print(res_str)
