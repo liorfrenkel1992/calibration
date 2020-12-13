@@ -214,7 +214,7 @@ if __name__ == "__main__":
     cece_criterion = ClasswiseECELoss().cuda()
     csece_criterion = ClassECELoss().cuda()
 
-    logits, labels = get_logits_labels(args, test_loader, net)
+    logits, labels = get_logits_labels(test_loader, net)
     conf_matrix, p_accuracy, _, _, _ = test_classification_net_logits(logits, labels)
 
     p_ece = ece_criterion(logits, labels).item()
