@@ -234,7 +234,7 @@ if __name__ == "__main__":
         print ('AdaECE: ' + str(p_adaece))
         print ('Classwise ECE: ' + str(p_cece))
         print ('Classes ECE: ' + str(p_csece))
-        print ('Classes confidences: ' + str(p_acc))
+        print ('Classes accuracies: ' + str(p_acc))
 
 
     scaled_model = ModelWithTemperature(net, args.log)
@@ -260,7 +260,7 @@ if __name__ == "__main__":
         print ('AdaECE: ' + str(adaece))
         print ('Classwise ECE: ' + str(cece))
         print ('Classes ECE: ' + str(csece))
-        print ('Classes confidences: ' + str(accuracies))
+        print ('Classes accuracies: ' + str(accuracies))
 
     # Test NLL & ECE & AdaECE & Classwise ECE
     print(res_str)
