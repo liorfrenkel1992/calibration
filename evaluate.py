@@ -97,6 +97,8 @@ def parseArgs():
                         help="whether to use ece for each class separately")
     parser.add_argument("-iters", type=int, default=1,
                         dest="temp_opt_iters", help="number of temprature optimiation iterations")
+    parser.add_argument("-const_temp", action="store_true", dest="const_temp",
+                        help="whether to use constant temperature on all classes")
 
     return parser.parse_args()
 
@@ -163,6 +165,7 @@ if __name__ == "__main__":
     num_bins = args.num_bins
     cross_validation_error = args.cross_validation_error
     temp_opt_iters = args.temp_opt_iters
+    const_temp = args.const_temp
 
     # Taking input for the dataset
     num_classes = dataset_num_classes[dataset]
@@ -241,8 +244,11 @@ if __name__ == "__main__":
 
 
     scaled_model = ModelWithTemperature(net, args.log)
-    scaled_model.set_temperature(val_loader, temp_opt_iters, cross_validate=cross_validation_error)
-    T_opt, T_csece_opt = scaled_model.get_temperature()
+    scaled_model.set_temperature(val_loader, temp_opt_iters, cross_validate=cross_validation_error, const_temp=const_temp)
+    if const_temp:
+        T_opt = scaled_model.get_temperature()
+    else:
+        T_opt, T_csece_opt = scaled_model.get_temperature()
     logits, labels = get_logits_labels(test_loader, scaled_model)
     conf_matrix, accuracy, _, _, _ = test_classification_net_logits(logits, labels)
 
@@ -256,7 +262,8 @@ if __name__ == "__main__":
 
     if args.log:
         print ('Optimal temperature: ' + str(T_opt))
-        print ('Optimal classes tempeatures: ' + str(T_csece_opt))
+        if not const_temp:
+            print ('Optimal classes tempeatures: ' + str(T_csece_opt))
         print (conf_matrix)
         print ('Test error: ' + str((1 - accuracy)))
         print ('Test NLL: ' + str(nll))
