@@ -36,7 +36,7 @@ class ModelWithTemperature(nn.Module):
         # Expand temperature to match the size of logits
         return logits / self.temperature
     
-   def class_temperature_scale(self, logits, label):
+    def class_temperature_scale(self, logits, label):
         """
         Perform temperature scaling on logits
         """
