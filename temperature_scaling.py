@@ -27,7 +27,7 @@ class ModelWithTemperature(nn.Module):
     def forward(self, input):
         logits = self.model(input)
         #return self.temperature_scale(logits)
-        return class_temperature_scale(logits)
+        return self.class_temperature_scale(logits)
 
 
     def temperature_scale(self, logits):
