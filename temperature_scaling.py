@@ -46,8 +46,8 @@ class ModelWithTemperature(nn.Module):
 
 
     def set_temperature(self,
-                        valid_loader,
-                        cross_validate='ece', iters=1):
+                        valid_loader, iters=1,
+                        cross_validate='ece'):
         """
         Tune the tempearature of the model (using the validation set) with cross-validation on ECE or NLL
         """
