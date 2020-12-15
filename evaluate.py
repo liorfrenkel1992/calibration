@@ -95,6 +95,8 @@ def parseArgs():
                         help="whether to print log data")
     parser.add_argument("-class_ece", action="store_true", dest="class_ece",
                         help="whether to use ece for each class separately")
+    parser.add_argument("-iters", type=int, default=1,
+                        dest="temp_opt_iters", help="number of temprature optimiation iterations")
 
     return parser.parse_args()
 
@@ -160,6 +162,7 @@ if __name__ == "__main__":
     saved_model_name = args.saved_model_name
     num_bins = args.num_bins
     cross_validation_error = args.cross_validation_error
+    iters = args.temp_opt_iters
 
     # Taking input for the dataset
     num_classes = dataset_num_classes[dataset]
@@ -238,7 +241,7 @@ if __name__ == "__main__":
 
 
     scaled_model = ModelWithTemperature(net, args.log)
-    scaled_model.set_temperature(val_loader, cross_validate=cross_validation_error)
+    scaled_model.set_temperature(val_loader, cross_validate=cross_validation_error, iters)
     T_opt, T_csece_opt = scaled_model.get_temperature()
     logits, labels = get_logits_labels(test_loader, scaled_model)
     conf_matrix, accuracy, _, _, _ = test_classification_net_logits(logits, labels)
