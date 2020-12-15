@@ -71,7 +71,7 @@ class ModelWithTemperature(nn.Module):
         # Calculate NLL and ECE before temperature scaling
         before_temperature_nll = nll_criterion(logits, labels).item()
         before_temperature_ece = ece_criterion(logits, labels).item()
-        before_temperature_csece = csece_criterion(logits, labels)
+        before_temperature_csece, _ = csece_criterion(logits, labels)
         if self.log:
             print('Before temperature - NLL: {0:.3f}, ECE: {1:.3f}, classECE: {2}'.format(before_temperature_nll, before_temperature_ece, before_temperature_csece))
 
@@ -92,8 +92,7 @@ class ModelWithTemperature(nn.Module):
                 self.cuda()
                 after_temperature_nll = nll_criterion(self.temperature_scale(logits), labels).item()
                 after_temperature_ece = ece_criterion(self.temperature_scale(logits), labels).item()
-                after_temperature_csece = csece_criterion(self.class_temperature_scale(logits), labels)
-                print(after_temperature_csece.size())
+                after_temperature_csece, _ = csece_criterion(self.class_temperature_scale(logits), labels)
                 if nll_val > after_temperature_nll:
                     T_opt_nll = T
                     nll_val = after_temperature_nll
@@ -118,7 +117,7 @@ class ModelWithTemperature(nn.Module):
         # Calculate NLL and ECE after temperature scaling
         after_temperature_nll = nll_criterion(self.temperature_scale(logits), labels).item()
         after_temperature_ece = ece_criterion(self.temperature_scale(logits), labels).item()
-        after_temperature_csece = csece_criterion(self.class_temperature_scale(logits), labels)
+        after_temperature_csece, _ = csece_criterion(self.class_temperature_scale(logits), labels)
         if self.log:
             print('Optimal temperature: %.3f' % self.temperature)
             print('After temperature - NLL: {0:.3f}, ECE: {1:.3f}, classECE: {2}'.format(after_temperature_nll, after_temperature_ece, after_temperature_csece))
