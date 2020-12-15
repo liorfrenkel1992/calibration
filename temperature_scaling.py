@@ -85,15 +85,14 @@ class ModelWithTemperature(nn.Module):
         T_csece = torch.ones(logits.size()[1]).cuda()
         for iter in range(iters):
             for label in range(logits.size()[1]):
-                T_opt_label = T_opt_csece[label]
                 T = 0.1
                 for i in range(100):
                     T_csece[label] = T
                     self.csece_temperature = T_csece
                     self.temperature = T
                     self.cuda()
-                    after_temperature_nll = nll_criterion(self.temperature_scale(logits), labels).item()
-                    after_temperature_ece = ece_criterion(self.temperature_scale(logits), labels).item()
+                    after_temperature_nll = nll_criterion(self.class_temperature_scale(logits), labels).item()
+                    after_temperature_ece = ece_criterion(self.class_temperature_scale(logits), labels).item()
                     after_temperature_csece, _ = csece_criterion(self.class_temperature_scale(logits), labels)
                     if nll_val > after_temperature_nll:
                         T_opt_nll = T
@@ -103,9 +102,9 @@ class ModelWithTemperature(nn.Module):
                         T_opt_ece = T
                         ece_val = after_temperature_ece
 
-                    if csece_val > after_temperature_csece[label]:
+                    if csece_val > after_temperature_ece:
                         T_opt_csece[label] = T
-                        csece_val = after_temperature_csece[label]
+                        csece_val = after_temperature_ece
                     T += 0.1
                 T_csece[label] = T_opt_csece[label]
 
