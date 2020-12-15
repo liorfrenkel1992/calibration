@@ -241,7 +241,7 @@ if __name__ == "__main__":
 
 
     scaled_model = ModelWithTemperature(net, args.log)
-    scaled_model.set_temperature(val_loader, cross_validate=cross_validation_error, temp_opt_iters)
+    scaled_model.set_temperature(val_loader, temp_opt_iters, cross_validate=cross_validation_error)
     T_opt, T_csece_opt = scaled_model.get_temperature()
     logits, labels = get_logits_labels(test_loader, scaled_model)
     conf_matrix, accuracy, _, _, _ = test_classification_net_logits(logits, labels)
