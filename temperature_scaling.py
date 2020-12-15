@@ -82,7 +82,7 @@ class ModelWithTemperature(nn.Module):
         T_opt_ece = 1.0
         T_opt_csece = torch.ones(logits.size()[1])
         T_csece = torch.ones(logits.size()[1])
-        for label in range(logits.size()[1])
+        for label in range(logits.size()[1]):
             T_opt_label = T_opt_csece[label]
             T = 0.1
             for i in range(100):
