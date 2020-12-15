@@ -93,6 +93,7 @@ class ModelWithTemperature(nn.Module):
                 after_temperature_nll = nll_criterion(self.temperature_scale(logits), labels).item()
                 after_temperature_ece = ece_criterion(self.temperature_scale(logits), labels).item()
                 after_temperature_csece = csece_criterion(self.class_temperature_scale(logits), labels)
+                print(after_temperature_csece.size())
                 if nll_val > after_temperature_nll:
                     T_opt_nll = T
                     nll_val = after_temperature_nll
