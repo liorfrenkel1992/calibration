@@ -73,7 +73,7 @@ class ModelWithTemperature(nn.Module):
         before_temperature_ece = ece_criterion(logits, labels).item()
         before_temperature_csece = csece_criterion(logits, labels)
         if self.log:
-            print('Before temperature - NLL: %.3f, ECE: %.3f, classECE: %' % (before_temperature_nll, before_temperature_ece, before_temperature_csece))
+            print('Before temperature - NLL: {0:.3f}, ECE: {1:.3f}, classECE: {2}'.format(before_temperature_nll, before_temperature_ece, before_temperature_csece))
 
         nll_val = 10 ** 7
         ece_val = 10 ** 7
@@ -120,7 +120,7 @@ class ModelWithTemperature(nn.Module):
         after_temperature_csece = csece_criterion(self.class_temperature_scale(logits), labels)
         if self.log:
             print('Optimal temperature: %.3f' % self.temperature)
-            print('After temperature - NLL: %.3f, ECE: %.3f, classECE: %' % (after_temperature_nll, after_temperature_ece, after_temperature_csece))
+            print('After temperature - NLL: {0:.3f}, ECE: {1:.3f}, classECE: {2}'.format(after_temperature_nll, after_temperature_ece, after_temperature_csece))
 
         return self
 
