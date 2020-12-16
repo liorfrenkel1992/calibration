@@ -7,6 +7,8 @@ from torch import nn
 import matplotlib.pyplot as plt
 import torch.backends.cudnn as cudnn
 
+import matplotlib.pyplot as plt
+
 # Import dataloaders
 import Data.cifar10 as cifar10
 import Data.cifar100 as cifar100
@@ -54,6 +56,7 @@ def parseArgs():
     dataset_root = './'
     model = 'resnet50'
     save_loc = './'
+    save_plots_loc = './'
     saved_model_name = 'resnet50_cross_entropy_350.model'
     num_bins = 15
     model_name = None
@@ -97,8 +100,13 @@ def parseArgs():
                         help="whether to create plots of ECE vs. temperature scaling iterations")
     parser.add_argument("-iters", type=int, default=1,
                         dest="temp_opt_iters", help="number of temprature scaling iterations")
+    parser.add_argument("-init_temp", type=int, default=2.5,
+                        dest="init_temp", help="initial temperature for temperature scaling")
     parser.add_argument("-const_temp", action="store_true", dest="const_temp",
                         help="whether to use constant temperature on all classes")
+    parser.add_argument("--save-path-plots", type=str, default=save_plots_loc,
+                        dest="save_plots_loc",
+                        help='Path to save plots')
 
     return parser.parse_args()
 
@@ -167,6 +175,8 @@ if __name__ == "__main__":
     temp_opt_iters = args.temp_opt_iters
     const_temp = args.const_temp
     create_plots = args.create_plots
+    save_plots_loc = args.save_plots_loc
+    init_temp = args.init_temp
 
     # Taking input for the dataset
     num_classes = dataset_num_classes[dataset]
@@ -245,11 +255,18 @@ if __name__ == "__main__":
 
 
     scaled_model = ModelWithTemperature(net, args.log, const_temp=const_temp)
-    scaled_model.set_temperature(val_loader, temp_opt_iters, cross_validate=cross_validation_error, create_plots=create_plots)
+    scaled_model.set_temperature(val_loader, temp_opt_iters, cross_validate=cross_validation_error, create_plots=create_plots, init_temp=init_temp)
     if const_temp:
         T_opt = scaled_model.get_temperature()
     else:
         T_opt, T_csece_opt = scaled_model.get_temperature()
+        if create_plots:
+            plt.figure()
+            plt.plot(range(temp_opt_iters), scaled_model.ece_list)
+            plt.title('ECE vs. temperature scaling iterations, initial temp: {0}'.format(init_temp))
+            plt.xlabel('iterations')
+            plt.ylabel('ECE')
+            plt.savefig(save_plots_loc)
     logits, labels = get_logits_labels(test_loader, scaled_model)
     conf_matrix, accuracy, _, _, _ = test_classification_net_logits(logits, labels)
 
