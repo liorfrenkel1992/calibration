@@ -6,8 +6,6 @@ import numpy as np
 from torch import nn, optim
 from torch.nn import functional as F
 
-import matplotlib.pyplot as plt
-
 from Metrics.metrics import ECELoss, ClassECELoss
 
 
