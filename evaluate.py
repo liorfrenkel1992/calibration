@@ -93,10 +93,10 @@ def parseArgs():
                         dest="cross_validation_error", help='Error function to do temp scaling')
     parser.add_argument("-log", action="store_true", dest="log",
                         help="whether to print log data")
-    parser.add_argument("-class_ece", action="store_true", dest="class_ece",
-                        help="whether to use ece for each class separately")
+    parser.add_argument("-plot", action="store_true", dest="create_plots",
+                        help="whether to create plots of ECE vs. temperature scaling iterations")
     parser.add_argument("-iters", type=int, default=1,
-                        dest="temp_opt_iters", help="number of temprature optimiation iterations")
+                        dest="temp_opt_iters", help="number of temprature scaling iterations")
     parser.add_argument("-const_temp", action="store_true", dest="const_temp",
                         help="whether to use constant temperature on all classes")
 
@@ -166,6 +166,7 @@ if __name__ == "__main__":
     cross_validation_error = args.cross_validation_error
     temp_opt_iters = args.temp_opt_iters
     const_temp = args.const_temp
+    create_plots = args.create_plots
 
     # Taking input for the dataset
     num_classes = dataset_num_classes[dataset]
@@ -244,7 +245,7 @@ if __name__ == "__main__":
 
 
     scaled_model = ModelWithTemperature(net, args.log, const_temp=const_temp)
-    scaled_model.set_temperature(val_loader, temp_opt_iters, cross_validate=cross_validation_error)
+    scaled_model.set_temperature(val_loader, temp_opt_iters, cross_validate=cross_validation_error, create_plots=create_plots)
     if const_temp:
         T_opt = scaled_model.get_temperature()
     else:
