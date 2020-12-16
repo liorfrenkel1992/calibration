@@ -169,6 +169,8 @@ class ModelWithTemperature(nn.Module):
                             csece_val = after_temperature_ece
                         T += 0.1
                     T_csece[label] = T_opt_csece[label]
+                print(self.csece_temperature)
+                print(ece_criterion(self.class_temperature_scale(logits), labels).item())
                 self.ece_list.append(ece_criterion(self.class_temperature_scale(logits), labels).item())
 
             if cross_validate == 'ece':
