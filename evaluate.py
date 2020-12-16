@@ -255,7 +255,7 @@ if __name__ == "__main__":
 
 
     scaled_model = ModelWithTemperature(net, args.log, const_temp=const_temp)
-    scaled_model.set_temperature(val_loader, temp_opt_iters, cross_validate=cross_validation_error, create_plots=create_plots, init_temp=init_temp)
+    scaled_model.set_temperature(val_loader, temp_opt_iters, cross_validate=cross_validation_error, init_temp=init_temp)
     if const_temp:
         T_opt = scaled_model.get_temperature()
     else:
