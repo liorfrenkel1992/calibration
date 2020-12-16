@@ -266,7 +266,7 @@ if __name__ == "__main__":
             plt.title('ECE vs. temperature scaling iterations, initial temp: {0}'.format(init_temp))
             plt.xlabel('iterations')
             plt.ylabel('ECE')
-            plt.savefig(save_plots_loc)
+            plt.savefig(os.path.join(save_plots_loc, 'ece_iters_{}'.format(init_temp)))
     logits, labels = get_logits_labels(test_loader, scaled_model)
     conf_matrix, accuracy, _, _, _ = test_classification_net_logits(logits, labels)
 
