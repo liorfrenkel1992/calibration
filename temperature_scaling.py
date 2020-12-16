@@ -6,6 +6,8 @@ import numpy as np
 from torch import nn, optim
 from torch.nn import functional as F
 
+import matplotlib.pyplot as plt
+
 from Metrics.metrics import ECELoss, ClassECELoss
 
 
@@ -23,6 +25,7 @@ class ModelWithTemperature(nn.Module):
         self.temperature = 1.0
         self.log = log
         self.const_temp = const_temp
+        self.ece_list = []
 
 
     def forward(self, input):
@@ -50,7 +53,7 @@ class ModelWithTemperature(nn.Module):
 
     def set_temperature(self,
                         valid_loader, iters=1,
-                        cross_validate='ece'):
+                        cross_validate='ece', init_temp=2.5):
         """
         Tune the tempearature of the model (using the validation set) with cross-validation on ECE or NLL
         """
@@ -141,8 +144,9 @@ class ModelWithTemperature(nn.Module):
             csece_val = 10 ** 7
             T_opt_nll = 1.0
             T_opt_ece = 1.0
-            T_opt_csece = 2.5*torch.ones(logits.size()[1]).cuda()
-            T_csece = 2.5*torch.ones(logits.size()[1]).cuda()
+            init_temp = 2.5
+            T_opt_csece = init_temp*torch.ones(logits.size()[1]).cuda()
+            T_csece = init_temp*torch.ones(logits.size()[1]).cuda()
             for iter in range(iters):
                 for label in range(logits.size()[1]):
                     T = 0.1
@@ -167,6 +171,7 @@ class ModelWithTemperature(nn.Module):
                             csece_val = after_temperature_ece
                         T += 0.1
                     T_csece[label] = T_opt_csece[label]
+                self.ece_list.append(ece_criterion(self.class_temperature_scale(logits), labels).item())
 
             if cross_validate == 'ece':
                 self.temperature = T_opt_ece
