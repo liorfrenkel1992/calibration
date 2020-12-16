@@ -243,8 +243,8 @@ if __name__ == "__main__":
         print ('Classes accuracies: ' + str(p_acc))
 
 
-    scaled_model = ModelWithTemperature(net, args.log)
-    scaled_model.set_temperature(val_loader, temp_opt_iters, cross_validate=cross_validation_error, const_temp=const_temp)
+    scaled_model = ModelWithTemperature(net, args.log, const_temp=const_temp)
+    scaled_model.set_temperature(val_loader, temp_opt_iters, cross_validate=cross_validation_error)
     if const_temp:
         T_opt = scaled_model.get_temperature()
     else:
