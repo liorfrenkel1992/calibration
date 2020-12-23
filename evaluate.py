@@ -256,6 +256,8 @@ if __name__ == "__main__":
 
     scaled_model = ModelWithTemperature(net, args.log, const_temp=const_temp)
     scaled_model.set_temperature(val_loader, temp_opt_iters, cross_validate=cross_validation_error, init_temp=init_temp)
+    logits, labels = get_logits_labels(test_loader, scaled_model)
+    ece = ece_criterion(logits, labels).item()
     if const_temp:
         T_opt = scaled_model.get_temperature()
     else:
@@ -263,14 +265,14 @@ if __name__ == "__main__":
         if create_plots:
             plt.figure()
             plt.plot(range(temp_opt_iters + 1), scaled_model.ece_list)
+            plt.plot(range(temp_opt_iters + 1), ece)
+            plt.legend('temperature scaling ECE', 'constant temperature ECE')
             plt.title('ECE vs. temperature scaling iterations, initial temp: {0}'.format(init_temp))
             plt.xlabel('iterations')
             plt.ylabel('ECE')
             plt.savefig(os.path.join(save_plots_loc, 'ece_iters_{}.jpg'.format(init_temp)))
-    logits, labels = get_logits_labels(test_loader, scaled_model)
     conf_matrix, accuracy, _, _, _ = test_classification_net_logits(logits, labels)
 
-    ece = ece_criterion(logits, labels).item()
     adaece = adaece_criterion(logits, labels).item()
     cece = cece_criterion(logits, labels).item()
     csece, accuracies = csece_criterion(logits, labels)
