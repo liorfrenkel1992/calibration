@@ -137,17 +137,16 @@ class ModelWithTemperature(nn.Module):
             if self.log:
                 print('Before temperature - NLL: {0:.3f}, ECE: {1:.3f}, classECE: {2}'.format(before_temperature_nll, before_temperature_ece, before_temperature_csece))
 
-            nll_val = 10 ** 7
-            ece_val = 10 ** 7
-            csece_val = 10 ** 7
             T_opt_nll = 1.0
             T_opt_ece = 1.0
-            init_temp = 2.5
             T_opt_csece = init_temp*torch.ones(logits.size()[1]).cuda()
             T_csece = init_temp*torch.ones(logits.size()[1]).cuda()
             for iter in range(iters):
                 for label in range(logits.size()[1]):
                     T = 0.1
+                    nll_val = 10 ** 7
+                    ece_val = 10 ** 7
+                    csece_val = 10 ** 7
                     for i in range(100):
                         T_csece[label] = T
                         self.csece_temperature = T_csece
