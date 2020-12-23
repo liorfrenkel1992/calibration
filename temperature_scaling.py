@@ -151,6 +151,7 @@ class ModelWithTemperature(nn.Module):
                     for i in range(100):
                         T_csece[label] = T
                         self.csece_temperature = T_csece
+                        print(self.csece_temperature)
                         self.temperature = T
                         self.cuda()
                         after_temperature_nll = nll_criterion(self.class_temperature_scale(logits), labels).item()
