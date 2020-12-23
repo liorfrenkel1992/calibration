@@ -141,6 +141,8 @@ class ModelWithTemperature(nn.Module):
             T_opt_ece = 1.0
             T_opt_csece = init_temp*torch.ones(logits.size()[1]).cuda()
             T_csece = init_temp*torch.ones(logits.size()[1]).cuda()
+            self.csece_temperature = T_csece
+            self.ece_list.append(ece_criterion(self.class_temperature_scale(logits), labels).item())
             for iter in range(iters):
                 for label in range(logits.size()[1]):
                     T = 0.1
@@ -150,19 +152,20 @@ class ModelWithTemperature(nn.Module):
                     for i in range(100):
                         T_csece[label] = T
                         self.csece_temperature = T_csece
-                        print(self.csece_temperature)
                         self.temperature = T
                         self.cuda()
-                        after_temperature_nll = nll_criterion(self.class_temperature_scale(logits), labels).item()
+                        after_temperature_nll = nll_criterion(self.temperature_scale(logits), labels).item()
                         after_temperature_ece = ece_criterion(self.class_temperature_scale(logits), labels).item()
-                        after_temperature_csece, _ = csece_criterion(self.class_temperature_scale(logits), labels)
+                        after_temperature_ece_reg = ece_criterion(self.temperature_scale(logits), labels).item()
+                        
                         if nll_val > after_temperature_nll:
                             T_opt_nll = T
                             nll_val = after_temperature_nll
 
-                        if ece_val > after_temperature_ece:
+                        if ece_val > after_temperature_ece_reg:
                             T_opt_ece = T
-                            ece_val = after_temperature_ece
+                            ece_val = after_temperature_ece_reg
+                        
 
                         if csece_val > after_temperature_ece:
                             T_opt_csece[label] = T
