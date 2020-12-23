@@ -262,7 +262,7 @@ if __name__ == "__main__":
         T_opt, T_csece_opt = scaled_model.get_temperature()
         if create_plots:
             plt.figure()
-            plt.plot(range(temp_opt_iters), scaled_model.ece_list)
+            plt.plot(range(temp_opt_iters + 1), scaled_model.ece_list)
             plt.title('ECE vs. temperature scaling iterations, initial temp: {0}'.format(init_temp))
             plt.xlabel('iterations')
             plt.ylabel('ECE')
