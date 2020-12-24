@@ -242,6 +242,17 @@ if __name__ == "__main__":
 
     res_str = '{:s}&{:.4f}&{:.4f}&{:.4f}&{:.4f}&{:.4f}'.format(saved_model_name,  1-p_accuracy,  p_nll,  p_ece,  p_adaece, p_cece)
 
+    if create_plots:
+        plt.figure()
+        plt.plot(p_acc, p_csece)
+        plt.plot(range(len(p_acc)), p_ece*torch.ones(len(p_acc)))
+        #plt.legend('temperature scaling ECE', 'constant temperature ECE')
+        plt.title('Classes ECE vs. classes accuracy before scaling, {}, {}'.format(dataset, args.model))
+        plt.xlabel('accuracy')
+        plt.ylabel('ECE')
+        plt.savefig(os.path.join(save_plots_loc, 'ece_acc_before_scaling_{}_{}.jpg'.format(dataset, args.model)))
+        plt.close()
+    
     # Printing the required evaluation metrics
     if args.log:
         print (conf_matrix)
@@ -266,11 +277,12 @@ if __name__ == "__main__":
             plt.figure()
             plt.plot(range(temp_opt_iters + 1), scaled_model.ece_list)
             plt.plot(range(temp_opt_iters + 1), ece*torch.ones(temp_opt_iters + 1))
-            plt.legend('temperature scaling ECE', 'constant temperature ECE')
+            #plt.legend('temperature scaling ECE', 'constant temperature ECE')
             plt.title('ECE vs. temperature scaling iterations, initial temp: {0}'.format(init_temp))
             plt.xlabel('iterations')
             plt.ylabel('ECE')
             plt.savefig(os.path.join(save_plots_loc, 'ece_iters_{}_{}_{}.jpg'.format(init_temp, dataset, args.model)))
+            plt.close()
     conf_matrix, accuracy, _, _, _ = test_classification_net_logits(logits, labels)
 
     adaece = adaece_criterion(logits, labels).item()
@@ -280,6 +292,16 @@ if __name__ == "__main__":
 
     res_str += '&{:.4f}({:.2f})&{:.4f}&{:.4f}&{:.4f}'.format(nll,  T_opt,  ece,  adaece, cece)
 
+    if create_plots:    
+        plt.figure()
+        plt.plot(accuracies, csece)
+        plt.plot(range(len(accuracies)), ece*torch.ones(len(accuracies)))
+        #plt.legend('temperature scaling ECE', 'constant temperature ECE')
+        plt.title('Classes ECE vs. classes accuracy after scaling, {}, {}'.format(dataset, args.model))
+        plt.xlabel('accuracy')
+        plt.ylabel('ECE')
+        plt.savefig(os.path.join(save_plots_loc, 'ece_acc_after_scaling_{}_{}.jpg'.format(dataset, args.model)))
+    
     if args.log:
         print ('Optimal temperature: ' + str(T_opt))
         if not const_temp:
