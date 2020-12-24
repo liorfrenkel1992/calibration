@@ -100,7 +100,7 @@ def parseArgs():
                         help="whether to create plots of ECE vs. temperature scaling iterations")
     parser.add_argument("-iters", type=int, default=1,
                         dest="temp_opt_iters", help="number of temprature scaling iterations")
-    parser.add_argument("-init_temp", type=int, default=2.5,
+    parser.add_argument("-init_temp", type=float, default=2.5,
                         dest="init_temp", help="initial temperature for temperature scaling")
     parser.add_argument("-const_temp", action="store_true", dest="const_temp",
                         help="whether to use constant temperature on all classes")
