@@ -270,7 +270,7 @@ if __name__ == "__main__":
             plt.title('ECE vs. temperature scaling iterations, initial temp: {0}'.format(init_temp))
             plt.xlabel('iterations')
             plt.ylabel('ECE')
-            plt.savefig(os.path.join(save_plots_loc, 'ece_iters_{}.jpg'.format(init_temp)))
+            plt.savefig(os.path.join(save_plots_loc, 'ece_iters_{}_{}_{}.jpg'.format(init_temp, dataset, args.model)))
     conf_matrix, accuracy, _, _, _ = test_classification_net_logits(logits, labels)
 
     adaece = adaece_criterion(logits, labels).item()
