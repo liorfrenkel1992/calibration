@@ -244,7 +244,7 @@ if __name__ == "__main__":
 
     if create_plots:
         plt.figure()
-        plt.plot(p_acc, p_csece)
+        plt.plot(p_acc, p_csece.cpu())
         plt.plot(range(len(p_acc)), p_ece*torch.ones(len(p_acc)))
         #plt.legend('temperature scaling ECE', 'constant temperature ECE')
         plt.title('Classes ECE vs. classes accuracy before scaling, {}, {}'.format(dataset, args.model))
@@ -294,7 +294,7 @@ if __name__ == "__main__":
 
     if create_plots:    
         plt.figure()
-        plt.plot(accuracies, csece)
+        plt.plot(accuracies, csece.cpu())
         plt.plot(range(len(accuracies)), ece*torch.ones(len(accuracies)))
         #plt.legend('temperature scaling ECE', 'constant temperature ECE')
         plt.title('Classes ECE vs. classes accuracy after scaling, {}, {}'.format(dataset, args.model))
