@@ -292,7 +292,7 @@ if __name__ == "__main__":
 
 
     scaled_model = ModelWithTemperature(net, args.log, const_temp=const_temp)
-    scaled_model.set_temperature(val_loader, temp_opt_iters, cross_validate=cross_validation_error, init_temp=init_temp, pos_neg_ece=pos_neg_ece)
+    scaled_model.set_temperature(val_loader, temp_opt_iters, cross_validate=cross_validation_error, init_temp=init_temp)
     logits, labels = get_logits_labels(test_loader, scaled_model)
     ece = ece_criterion(logits, labels).item()
     if const_temp:
@@ -314,11 +314,32 @@ if __name__ == "__main__":
     adaece = adaece_criterion(logits, labels).item()
     cece = cece_criterion(logits, labels).item()
     csece, accuracies = csece_criterion(logits, labels)
+    if pos_neg_loss:
+        csece_pos, csece_neg, accuracies = posneg_csece_criterion(logits, labels)
     nll = nll_criterion(logits, labels).item()
 
     res_str += '&{:.4f}({:.2f})&{:.4f}&{:.4f}&{:.4f}'.format(nll,  T_opt,  ece,  adaece, cece)
 
-    if create_plots:    
+    if create_plots:
+        if pos_neg_ece:
+            # pos and neg ECE vs. accuracy per class
+            plt.figure()
+            plt.scatter(accuracies, csece_pos.cpu())
+            plt.title('Classes pos ECE vs. classes accuracy after scaling, {}, {}'.format(dataset, args.model))
+            plt.xlabel('accuracy')
+            plt.ylabel('positive ECE')
+            plt.savefig(os.path.join(save_plots_loc, 'pos_ece_acc_after_scaling_{}_{}.jpg'.format(dataset, args.model)), dpi=40)
+            plt.close()
+            
+            plt.figure()
+            plt.scatter(accuracies, csece_neg.cpu())
+            plt.title('Classes neg ECE vs. classes accuracy after scaling, {}, {}'.format(dataset, args.model))
+            plt.xlabel('accuracy')
+            plt.ylabel('negative ECE')
+            plt.savefig(os.path.join(save_plots_loc, 'neg_ece_acc_after_scaling_{}_{}.jpg'.format(dataset, args.model)), dpi=40)
+            plt.close()
+            
+        # ECE vs. accuracy per class    
         plt.figure()
         plt.scatter(accuracies, csece.cpu())
         #plt.plot(accuracies, ece*torch.ones(len(accuracies)))
