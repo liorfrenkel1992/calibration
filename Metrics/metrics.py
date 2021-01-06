@@ -304,30 +304,48 @@ class ClassECELoss(nn.Module):
 # Calibration error scores in the form of loss metrics
 class posnegECELoss(nn.Module):
     '''
-    Compute ECE (Expected Calibration Error)
+    Compute Classwise ECE
     '''
     def __init__(self, n_bins=15):
-        super(ECELoss, self).__init__()
+        super(ClassECELoss, self).__init__()
         bin_boundaries = torch.linspace(0, 1, n_bins + 1)
         self.bin_lowers = bin_boundaries[:-1]
         self.bin_uppers = bin_boundaries[1:]
 
     def forward(self, logits, labels):
+        num_classes = int((torch.max(labels) + 1).item())
         softmaxes = F.softmax(logits, dim=1)
-        confidences, predictions = torch.max(softmaxes, 1)
-        accuracies = predictions.eq(labels)
-        ece_pos = torch.zeros(1, device=logits.device)
-        ece_neg = torch.zeros(1, device=logits.device)
-        for bin_lower, bin_upper in zip(self.bin_lowers, self.bin_uppers):
-            # Calculated |confidence - accuracy| in each bin
-            in_bin = confidences.gt(bin_lower.item()) * confidences.le(bin_upper.item())
-            prop_in_bin = in_bin.float().mean()
-            if prop_in_bin.item() > 0:
-                accuracy_in_bin = accuracies[in_bin].float().mean()
-                avg_confidence_in_bin = confidences[in_bin].mean()
-                if avg_confidence_in_bin - accuracy_in_bin > 0:
-                    ece_pos += torch.abs(avg_confidence_in_bin - accuracy_in_bin) * prop_in_bin
-                else:
-                    ece_neg += torch.abs(avg_confidence_in_bin - accuracy_in_bin) * prop_in_bin
+        per_class_sce = None
+        choices = torch.argmax(softmaxes, dim=1)
+        classes_acc = []
 
-        return ece_pos, ece_neg
+        for i in range(num_classes):
+            class_confidences = softmaxes[:, i]
+            class_choices = choices[labels.eq(i)]
+            class_choices = torch.sum(class_choices.eq(i)).item()
+            class_accuracy = class_choices / torch.sum(labels.eq(i)).item()
+            class_sce_pos = torch.zeros(1, device=logits.device)
+            class_sce_neg = torch.zeros(1, device=logits.device)
+            labels_in_class = labels.eq(i) # one-hot vector of all positions where the label belongs to the class i
+
+            for bin_lower, bin_upper in zip(self.bin_lowers, self.bin_uppers):
+                in_bin = class_confidences.gt(bin_lower.item()) * class_confidences.le(bin_upper.item())
+                prop_in_bin = in_bin.float().mean()
+                if prop_in_bin.item() > 0:
+                    accuracy_in_bin = labels_in_class[in_bin].float().mean()
+                    avg_confidence_in_bin = class_confidences[in_bin].mean()
+                    if avg_confidence_in_bin - accuracy_in_bin > 0:
+                        class_sce_pos += torch.abs(avg_confidence_in_bin - accuracy_in_bin) * prop_in_bin
+                    else:
+                        class_sce_neg += torch.abs(avg_confidence_in_bin - accuracy_in_bin) * prop_in_bin
+
+            if (i == 0):
+                per_class_sce_pos = class_sce_pos
+                per_class_sce_neg = class_sce_neg
+            else:
+                per_class_sce_pos = torch.cat((per_class_sce_pos, class_sce_pos), dim=0)
+                per_class_sce_neg = torch.cat((per_class_sce_neg, class_sce_neg), dim=0)
+                
+            classes_acc.append(class_accuracy)
+
+        return per_class_sce_pos, per_class_sce_neg, classes_acc
