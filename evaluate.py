@@ -242,7 +242,7 @@ if __name__ == "__main__":
     p_adaece = adaece_criterion(logits, labels).item()
     p_cece = cece_criterion(logits, labels).item()
     p_csece, p_acc = csece_criterion(logits, labels)
-    if pos_neg_loss:
+    if pos_neg_ece:
         p_csece_pos, p_csece_neg, p_acc = posneg_csece_criterion(logits, labels)
     p_nll = nll_criterion(logits, labels).item()
 
@@ -314,7 +314,7 @@ if __name__ == "__main__":
     adaece = adaece_criterion(logits, labels).item()
     cece = cece_criterion(logits, labels).item()
     csece, accuracies = csece_criterion(logits, labels)
-    if pos_neg_loss:
+    if pos_neg_ece:
         csece_pos, csece_neg, accuracies = posneg_csece_criterion(logits, labels)
     nll = nll_criterion(logits, labels).item()
 
