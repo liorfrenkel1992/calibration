@@ -24,8 +24,6 @@ class ModelWithTemperature(nn.Module):
         self.log = log
         self.const_temp = const_temp
         self.ece_list = []
-        self.pos_ece = 0.0
-        self.neg_ece = 0.0
 
 
     def forward(self, input):
@@ -53,7 +51,7 @@ class ModelWithTemperature(nn.Module):
 
     def set_temperature(self,
                         valid_loader, iters=1,
-                        cross_validate='ece', init_temp=2.5, pos_neg_loss=False):
+                        cross_validate='ece', init_temp=2.5):
         """
         Tune the tempearature of the model (using the validation set) with cross-validation on ECE or NLL
         """
@@ -137,8 +135,7 @@ class ModelWithTemperature(nn.Module):
             before_temperature_nll = nll_criterion(logits, labels).item()
             before_temperature_ece = ece_criterion(logits, labels).item()
             before_temperature_csece, _ = csece_criterion(logits, labels)
-            if pos_neg_loss:
-                before_temperature_csece_pos, after_temperature_csece_neg = posneg_csece_criterion(self.class_temperature_scale(logits), labels).item()
+            
             if self.log:
                 print('Before temperature - NLL: {0:.3f}, ECE: {1:.3f}, classECE: {2}'.format(before_temperature_nll, before_temperature_ece, before_temperature_csece))
 
