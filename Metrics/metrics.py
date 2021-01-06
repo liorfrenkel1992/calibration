@@ -260,7 +260,7 @@ class ClasswiseECELoss(nn.Module):
   
 class ClassECELoss(nn.Module):
     '''
-    Compute Classwise ECE
+    Compute per-Class ECE
     '''
     def __init__(self, n_bins=15):
         super(ClassECELoss, self).__init__()
@@ -304,10 +304,10 @@ class ClassECELoss(nn.Module):
 # Calibration error scores in the form of loss metrics
 class posnegECELoss(nn.Module):
     '''
-    Compute Classwise ECE
+    Compute per-Class powsitiv and negative ECE
     '''
     def __init__(self, n_bins=15):
-        super(ClassECELoss, self).__init__()
+        super(posnegECELoss, self).__init__()
         bin_boundaries = torch.linspace(0, 1, n_bins + 1)
         self.bin_lowers = bin_boundaries[:-1]
         self.bin_uppers = bin_boundaries[1:]
