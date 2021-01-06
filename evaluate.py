@@ -22,7 +22,7 @@ from Net.densenet import densenet121
 
 # Import metrics to compute
 from Metrics.metrics import test_classification_net_logits
-from Metrics.metrics import ECELoss, AdaptiveECELoss, ClasswiseECELoss, ClassECELoss
+from Metrics.metrics import ECELoss, AdaptiveECELoss, ClasswiseECELoss, ClassECELoss, posnegECELoss
 
 # Import temperature scaling and NLL utilities
 from temperature_scaling import ModelWithTemperature
@@ -98,6 +98,8 @@ def parseArgs():
                         help="whether to print log data")
     parser.add_argument("-plot", action="store_true", dest="create_plots",
                         help="whether to create plots of ECE vs. temperature scaling iterations")
+    parser.add_argument("-posneg", action="store_true", dest="pos_neg_ece",
+                        help="whether to calculate positiv and negative ECE for each class")
     parser.add_argument("-iters", type=int, default=1,
                         dest="temp_opt_iters", help="number of temprature scaling iterations")
     parser.add_argument("-init_temp", type=float, default=2.5,
@@ -177,6 +179,7 @@ if __name__ == "__main__":
     create_plots = args.create_plots
     save_plots_loc = args.save_plots_loc
     init_temp = args.init_temp
+    pos_neg_ece = args.pos_neg_ece
 
     # Taking input for the dataset
     num_classes = dataset_num_classes[dataset]
@@ -230,6 +233,7 @@ if __name__ == "__main__":
     adaece_criterion = AdaptiveECELoss().cuda()
     cece_criterion = ClasswiseECELoss().cuda()
     csece_criterion = ClassECELoss().cuda()
+    posneg_csece_criterion = posnegECELoss().cuda()
 
     logits, labels = get_logits_labels(test_loader, net)
     conf_matrix, p_accuracy, _, _, _ = test_classification_net_logits(logits, labels)
@@ -238,11 +242,33 @@ if __name__ == "__main__":
     p_adaece = adaece_criterion(logits, labels).item()
     p_cece = cece_criterion(logits, labels).item()
     p_csece, p_acc = csece_criterion(logits, labels)
+    if pos_neg_loss:
+        p_csece_pos, p_csece_neg, p_acc = posneg_csece_criterion(logits, labels)
     p_nll = nll_criterion(logits, labels).item()
 
     res_str = '{:s}&{:.4f}&{:.4f}&{:.4f}&{:.4f}&{:.4f}'.format(saved_model_name,  1-p_accuracy,  p_nll,  p_ece,  p_adaece, p_cece)
 
+    
     if create_plots:
+        if pos_neg_ece:
+            # pos and neg ECE vs. accuracy per class
+            plt.figure()
+            plt.scatter(p_acc, p_csece_pos.cpu())
+            plt.title('Classes pos ECE vs. classes accuracy before scaling, {}, {}'.format(dataset, args.model))
+            plt.xlabel('accuracy')
+            plt.ylabel('positive ECE')
+            plt.savefig(os.path.join(save_plots_loc, 'pos_ece_acc_before_scaling_{}_{}.jpg'.format(dataset, args.model)), dpi=40)
+            plt.close()
+            
+            plt.figure()
+            plt.scatter(p_acc, p_csece_neg.cpu())
+            plt.title('Classes neg ECE vs. classes accuracy before scaling, {}, {}'.format(dataset, args.model))
+            plt.xlabel('accuracy')
+            plt.ylabel('negative ECE')
+            plt.savefig(os.path.join(save_plots_loc, 'neg_ece_acc_before_scaling_{}_{}.jpg'.format(dataset, args.model)), dpi=40)
+            plt.close()
+        
+        # ECE vs. accuracy per class
         plt.figure()
         plt.scatter(p_acc, p_csece.cpu())
         #plt.plot(p_acc, p_ece*torch.ones(len(p_acc)))
@@ -250,7 +276,7 @@ if __name__ == "__main__":
         plt.title('Classes ECE vs. classes accuracy before scaling, {}, {}'.format(dataset, args.model))
         plt.xlabel('accuracy')
         plt.ylabel('ECE')
-        plt.savefig(os.path.join(save_plots_loc, 'ece_acc_before_scaling_{}_{}.jpg'.format(dataset, args.model)))
+        plt.savefig(os.path.join(save_plots_loc, 'ece_acc_before_scaling_{}_{}.jpg'.format(dataset, args.model)), dpi=40)
         plt.close()
     
     # Printing the required evaluation metrics
@@ -266,7 +292,7 @@ if __name__ == "__main__":
 
 
     scaled_model = ModelWithTemperature(net, args.log, const_temp=const_temp)
-    scaled_model.set_temperature(val_loader, temp_opt_iters, cross_validate=cross_validation_error, init_temp=init_temp)
+    scaled_model.set_temperature(val_loader, temp_opt_iters, cross_validate=cross_validation_error, init_temp=init_temp, pos_neg_ece=pos_neg_ece)
     logits, labels = get_logits_labels(test_loader, scaled_model)
     ece = ece_criterion(logits, labels).item()
     if const_temp:
@@ -281,7 +307,7 @@ if __name__ == "__main__":
             plt.title('ECE vs. temperature scaling iterations, initial temp: {0}'.format(init_temp))
             plt.xlabel('iterations')
             plt.ylabel('ECE')
-            plt.savefig(os.path.join(save_plots_loc, 'ece_iters_{}_{}_{}.jpg'.format(init_temp, dataset, args.model)))
+            plt.savefig(os.path.join(save_plots_loc, 'ece_iters_{}_{}_{}.jpg'.format(init_temp, dataset, args.model)), dpi=40)
             plt.close()
     conf_matrix, accuracy, _, _, _ = test_classification_net_logits(logits, labels)
 
@@ -300,7 +326,7 @@ if __name__ == "__main__":
         plt.title('Classes ECE vs. classes accuracy after scaling, {}, {}'.format(dataset, args.model))
         plt.xlabel('accuracy')
         plt.ylabel('ECE')
-        plt.savefig(os.path.join(save_plots_loc, 'ece_acc_after_scaling_{}_{}.jpg'.format(dataset, args.model)))
+        plt.savefig(os.path.join(save_plots_loc, 'ece_acc_after_scaling_{}_{}.jpg'.format(dataset, args.model)), dpi=40)
     
     if args.log:
         print ('Optimal temperature: ' + str(T_opt))
