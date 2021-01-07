@@ -268,7 +268,7 @@ if __name__ == "__main__":
         T_opt = scaled_model.get_temperature()
     else:
         T_opt, T_csece_opt = scaled_model.get_temperature()
-        if create_plots:
+        if create_plots and not const_temp:
             plt.figure()
             plt.plot(range(temp_opt_iters + 1), scaled_model.ece_list)
             plt.plot(range(temp_opt_iters + 1), scaled_model.ece*torch.ones(temp_opt_iters + 1))
