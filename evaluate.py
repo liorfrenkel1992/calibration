@@ -100,6 +100,8 @@ def parseArgs():
                         help="whether to create plots of ECE vs. temperature scaling iterations")
     parser.add_argument("-posneg", action="store_true", dest="pos_neg_ece",
                         help="whether to calculate positiv and negative ECE for each class")
+    parser.add_argument("-unc", action="store_true", dest="uncalibrated_check",
+                        help="whether to calculate ECE for each class of uncalibrated model")
     parser.add_argument("-iters", type=int, default=1,
                         dest="temp_opt_iters", help="number of temprature scaling iterations")
     parser.add_argument("-init_temp", type=float, default=2.5,
@@ -157,6 +159,7 @@ if __name__ == "__main__":
     save_plots_loc = args.save_plots_loc
     init_temp = args.init_temp
     pos_neg_ece = args.pos_neg_ece
+    uncalibrated_check = args.uncalibrated_check
 
     # Taking input for the dataset
     num_classes = dataset_num_classes[dataset]
