@@ -359,7 +359,7 @@ class posnegECELoss(nn.Module):
         print('total samples number: ', labels.shape[0])
         print('over confidence counts sum: ', torch.sum(counts_over).item())
         print('under confidence counts sum: ', torch.sum(counts_under).item())
-        print('over confidence bins: ', torch.mean(torch.cat(bins_over)).item())
+        print('over confidence bins: ', torch.mean(torch.FloatTensor(bins_over)).item())
         print('under confidence bins: ', torch.mean(torch.FloatTensor(bins_under)).item())
 
         return per_class_sce_pos, per_class_sce_neg, classes_acc
