@@ -318,6 +318,8 @@ class posnegECELoss(nn.Module):
         per_class_sce = None
         choices = torch.argmax(softmaxes, dim=1)
         classes_acc = []
+        counts_over = torch.zeros(num_classes)
+        counts_under = torch.zeros(num_classes)
 
         for i in range(num_classes):
             class_confidences = softmaxes[:, i]
@@ -335,8 +337,10 @@ class posnegECELoss(nn.Module):
                     accuracy_in_bin = labels_in_class[in_bin].float().mean()
                     avg_confidence_in_bin = class_confidences[in_bin].mean()
                     if avg_confidence_in_bin - accuracy_in_bin > 0:
+                        counts_over[i] += 1 
                         class_sce_pos += torch.abs(avg_confidence_in_bin - accuracy_in_bin) * prop_in_bin
                     else:
+                        counts_under[i] += 1
                         class_sce_neg += torch.abs(avg_confidence_in_bin - accuracy_in_bin) * prop_in_bin
 
             if (i == 0):
@@ -347,5 +351,7 @@ class posnegECELoss(nn.Module):
                 per_class_sce_neg = torch.cat((per_class_sce_neg, class_sce_neg), dim=0)
                 
             classes_acc.append(class_accuracy)
+            print('over confidence counts mean: ', torch.mean(counts_over))
+            print('under confidence counts mean: ', torch.mean(counts_under))
 
         return per_class_sce_pos, per_class_sce_neg, classes_acc
