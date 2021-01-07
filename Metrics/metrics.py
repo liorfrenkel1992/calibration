@@ -322,7 +322,7 @@ class posnegECELoss(nn.Module):
         counts_over = torch.zeros(num_classes)
         counts_under = torch.zeros(num_classes)
         bins_over = []
-        bins_under - []
+        bins_under = []
 
         for i in range(num_classes):
             class_confidences = softmaxes[:, i]
