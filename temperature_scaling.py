@@ -24,6 +24,7 @@ class ModelWithTemperature(nn.Module):
         self.log = log
         self.const_temp = const_temp
         self.ece_list = []
+        self.ece = 0.0
 
 
     def forward(self, input):
@@ -188,6 +189,7 @@ class ModelWithTemperature(nn.Module):
             after_temperature_nll = nll_criterion(self.temperature_scale(logits), labels).item()
             after_temperature_ece = ece_criterion(self.temperature_scale(logits), labels).item()
             after_temperature_csece, _ = csece_criterion(self.class_temperature_scale(logits), labels)
+            self.ece = ece_criterion(self.temperature_scale(logits), labels).item()
             if self.log:
                 print('Optimal temperature: %.3f' % self.temperature)
                 print('After temperature - NLL: {0:.3f}, ECE: {1:.3f}, classECE: {2}'.format(after_temperature_nll, after_temperature_ece, after_temperature_csece))
