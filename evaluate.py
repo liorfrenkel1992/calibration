@@ -283,6 +283,8 @@ if __name__ == "__main__":
     adaece = adaece_criterion(logits, labels).item()
     cece = cece_criterion(logits, labels).item()
     csece, accuracies = csece_criterion(logits, labels)
+    if uncalibate_check:
+        csece_uncalibated, accuracies_uncalibated = csece_criterion(logits*init_temp, labels)
     if pos_neg_ece:
         csece_pos, csece_neg, accuracies = posneg_csece_criterion(logits, labels)
     nll = nll_criterion(logits, labels).item()
@@ -326,6 +328,18 @@ if __name__ == "__main__":
             plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'ece_acc_after_scaling_{}_{}_const_temp.eps'.format(dataset, args.model)), format='eps', dpi=40)
         else:
             plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'ece_acc_after_scaling_{}_{}.eps'.format(dataset, args.model)), format='eps', dpi=40)
+        
+        if uncalibate_check:
+            plt.figure()
+            plt.scatter(accuracies_uncalibated, csece_uncalibated.cpu())
+            #plt.plot(accuracies, ece*torch.ones(len(accuracies)))
+            #plt.legend('temperature scaling ECE', 'constant temperature ECE')
+            #plt.title('Classes ECE vs. classes accuracy after scaling, {}, {}'.format(dataset, args.model))
+            plt.xlabel('accuracy', fontsize=18)
+            plt.xticks(fontsize=18)
+            plt.ylabel('ECE', fontsize=18)
+            plt.yticks(fontsize=18)
+            plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'uncalibrated_ece_acc_after_scaling_{}_{}.eps'.format(dataset, args.model)), format='eps', dpi=40)
     
     if args.log:
         print ('Optimal temperature: ' + str(T_opt))
