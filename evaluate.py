@@ -265,7 +265,7 @@ if __name__ == "__main__":
         if create_plots:
             plt.figure()
             plt.plot(range(temp_opt_iters + 1), scaled_model.ece_list)
-            plt.plot(range(temp_opt_iters + 1), ece*torch.ones(temp_opt_iters + 1))
+            plt.plot(range(temp_opt_iters + 1), scaled_model.ece*torch.ones(temp_opt_iters + 1))
             plt.legend(('class-based temp scaling', 'const temp scaling'))
             #plt.title('ECE vs. temperature scaling iterations, initial temp: {0}'.format(init_temp))
             plt.xlabel('iterations')
