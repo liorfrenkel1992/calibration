@@ -257,7 +257,7 @@ if __name__ == "__main__":
             plt.title('Classes pos ECE vs. classes accuracy before scaling, {}, {}'.format(dataset, args.model))
             plt.xlabel('accuracy')
             plt.ylabel('positive ECE')
-            plt.savefig(os.path.join(save_plots_loc, 'pos_ece_acc_before_scaling_{}_{}.jpg'.format(dataset, args.model)), format='eps')
+            plt.savefig(os.path.join(save_plots_loc, 'pos_ece_acc_before_scaling_{}_{}.jpg'.format(dataset, args.model)), format='svg', dpi=40)
             plt.close()
             
             plt.figure()
@@ -265,7 +265,7 @@ if __name__ == "__main__":
             plt.title('Classes neg ECE vs. classes accuracy before scaling, {}, {}'.format(dataset, args.model))
             plt.xlabel('accuracy')
             plt.ylabel('negative ECE')
-            plt.savefig(os.path.join(save_plots_loc, 'neg_ece_acc_before_scaling_{}_{}.jpg'.format(dataset, args.model)), format='eps')
+            plt.savefig(os.path.join(save_plots_loc, 'neg_ece_acc_before_scaling_{}_{}.jpg'.format(dataset, args.model)), format='svg', dpi=40)
             plt.close()
         
         # ECE vs. accuracy per class
@@ -276,7 +276,7 @@ if __name__ == "__main__":
         plt.title('Classes ECE vs. classes accuracy before scaling, {}, {}'.format(dataset, args.model))
         plt.xlabel('accuracy')
         plt.ylabel('ECE')
-        plt.savefig(os.path.join(save_plots_loc, 'ece_acc_before_scaling_{}_{}.jpg'.format(dataset, args.model)), format='eps')
+        plt.savefig(os.path.join(save_plots_loc, 'ece_acc_before_scaling_{}_{}.jpg'.format(dataset, args.model)), format='svg', dpi=40)
         plt.close()
     
     # Printing the required evaluation metrics
@@ -307,7 +307,7 @@ if __name__ == "__main__":
             plt.title('ECE vs. temperature scaling iterations, initial temp: {0}'.format(init_temp))
             plt.xlabel('iterations')
             plt.ylabel('ECE')
-            plt.savefig(os.path.join(save_plots_loc, 'ece_iters_{}_{}_{}.jpg'.format(init_temp, dataset, args.model)), format='eps')
+            plt.savefig(os.path.join(save_plots_loc, 'ece_iters_{}_{}_{}.jpg'.format(init_temp, dataset, args.model)), format='svg', dpi=40)
             plt.close()
     conf_matrix, accuracy, _, _, _ = test_classification_net_logits(logits, labels)
 
@@ -328,7 +328,7 @@ if __name__ == "__main__":
             plt.title('Classes pos ECE vs. classes accuracy after scaling, {}, {}'.format(dataset, args.model))
             plt.xlabel('accuracy')
             plt.ylabel('positive ECE')
-            plt.savefig(os.path.join(save_plots_loc, 'pos_ece_acc_after_scaling_{}_{}.jpg'.format(dataset, args.model)), format='eps')
+            plt.savefig(os.path.join(save_plots_loc, 'pos_ece_acc_after_scaling_{}_{}.jpg'.format(dataset, args.model)), format='svg', dpi=40)
             plt.close()
             
             plt.figure()
@@ -336,7 +336,7 @@ if __name__ == "__main__":
             plt.title('Classes neg ECE vs. classes accuracy after scaling, {}, {}'.format(dataset, args.model))
             plt.xlabel('accuracy')
             plt.ylabel('negative ECE')
-            plt.savefig(os.path.join(save_plots_loc, 'neg_ece_acc_after_scaling_{}_{}.jpg'.format(dataset, args.model)), format='eps')
+            plt.savefig(os.path.join(save_plots_loc, 'neg_ece_acc_after_scaling_{}_{}.jpg'.format(dataset, args.model)), format='svg', dpi=40)
             plt.close()
             
         # ECE vs. accuracy per class    
@@ -347,7 +347,7 @@ if __name__ == "__main__":
         plt.title('Classes ECE vs. classes accuracy after scaling, {}, {}'.format(dataset, args.model))
         plt.xlabel('accuracy')
         plt.ylabel('ECE')
-        plt.savefig(os.path.join(save_plots_loc, 'ece_acc_after_scaling_{}_{}.jpg'.format(dataset, args.model)), format='eps')
+        plt.savefig(os.path.join(save_plots_loc, 'ece_acc_after_scaling_{}_{}.jpg'.format(dataset, args.model)), format='svg', dpi=40)
     
     if args.log:
         print ('Optimal temperature: ' + str(T_opt))
