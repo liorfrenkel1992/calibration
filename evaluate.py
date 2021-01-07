@@ -286,7 +286,7 @@ if __name__ == "__main__":
     adaece = adaece_criterion(logits, labels).item()
     cece = cece_criterion(logits, labels).item()
     csece, accuracies = csece_criterion(logits, labels)
-    if uncalibate_check:
+    if uncalibrate_check:
         csece_uncalibated, accuracies_uncalibated = csece_criterion(logits*init_temp, labels)
     if pos_neg_ece:
         csece_pos, csece_neg, accuracies = posneg_csece_criterion(logits, labels)
