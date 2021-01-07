@@ -322,7 +322,10 @@ if __name__ == "__main__":
         plt.xticks(fontsize=18)
         plt.ylabel('ECE', fontsize=18)
         plt.yticks(fontsize=18)
-        plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'ece_acc_after_scaling_{}_{}.eps'.format(dataset, args.model)), format='eps', dpi=40)
+        if const_temp:
+            plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'ece_acc_after_scaling_{}_{}_const_temp.eps'.format(dataset, args.model)), format='eps', dpi=40)
+        else:
+            plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'ece_acc_after_scaling_{}_{}.eps'.format(dataset, args.model)), format='eps', dpi=40)
     
     if args.log:
         print ('Optimal temperature: ' + str(T_opt))
