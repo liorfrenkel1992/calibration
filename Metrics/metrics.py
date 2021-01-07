@@ -352,7 +352,7 @@ class posnegECELoss(nn.Module):
                 
             classes_acc.append(class_accuracy)
         print('total samples number: ', labels.shape[0])
-        print('over confidence counts mean: ', torch.sum(counts_over).item())
-        print('under confidence counts mean: ', torch.sum(counts_under).item())
+        print('over confidence counts sum: ', torch.sum(counts_over).item())
+        print('under confidence counts sum: ', torch.sum(counts_under).item())
 
         return per_class_sce_pos, per_class_sce_neg, classes_acc
