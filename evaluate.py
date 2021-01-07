@@ -114,29 +114,6 @@ def parseArgs():
 
 
 def get_logits_labels(data_loader, net):
-    """
-    if args.class_ece:
-        logits_list = []
-        labels_list = []
-        for label in dataset.class_to_idx:
-            all_indices[label] = []
-            class_idxs[label] = dataset.class_to_idx[label])
-            net.eval()
-        with torch.no_grad():
-            for data, label in data_loader:
-                current_class = dataset[i][1]
-                for label in dataset.class_to_idx:
-                  if current_class == class_idxs[label]:
-                    all_indices[label].append(i)
-                    break
-                data = data.cuda()
-                logits = net(data)
-                logits_list.append(logits)
-                labels_list.append(label)
-            logits = torch.cat(logits_list).cuda()
-            labels = torch.cat(labels_list).cuda()
-    else:
-    """
     logits_list = []
     labels_list = []
     net.eval()
@@ -206,20 +183,6 @@ if __name__ == "__main__":
             batch_size=args.test_batch_size,
             pin_memory=args.gpu)
 
-    """
-    elif not args.class_ece:
-        _, val_loader = dataset_loader[args.dataset].get_train_valid_loader(
-            batch_size=args.train_batch_size,
-            augment=args.data_aug,
-            random_seed=1,
-            pin_memory=args.gpu
-        )
-
-        test_loader = dataset_loader[args.dataset].get_test_loader(
-            batch_size=args.test_batch_size,
-            pin_memory=args.gpu
-        )
-    """
     model = models[model_name]
 
     net = model(num_classes=num_classes, temp=1.0)
