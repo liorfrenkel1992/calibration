@@ -159,7 +159,7 @@ if __name__ == "__main__":
     save_plots_loc = args.save_plots_loc
     init_temp = args.init_temp
     pos_neg_ece = args.pos_neg_ece
-    uncalibrated_check = args.uncalibrated_check
+    uncalibrate_check = args.uncalibrated_check
 
     # Taking input for the dataset
     num_classes = dataset_num_classes[dataset]
@@ -332,7 +332,7 @@ if __name__ == "__main__":
         else:
             plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'ece_acc_after_scaling_{}_{}.eps'.format(dataset, args.model)), format='eps', dpi=40)
         
-        if uncalibate_check:
+        if uncalibrate_check:
             plt.figure()
             plt.scatter(accuracies_uncalibated, csece_uncalibated.cpu())
             #plt.plot(accuracies, ece*torch.ones(len(accuracies)))
