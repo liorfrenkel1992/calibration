@@ -137,6 +137,8 @@ class ModelWithTemperature(nn.Module):
             before_temperature_ece = ece_criterion(logits, labels).item()
             before_temperature_csece, _ = csece_criterion(logits, labels)
             
+            self.ece_list.append(before_temperature_ece)
+            
             if self.log:
                 print('Before temperature - NLL: {0:.3f}, ECE: {1:.3f}, classECE: {2}'.format(before_temperature_nll, before_temperature_ece, before_temperature_csece))
 
