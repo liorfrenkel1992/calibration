@@ -136,7 +136,7 @@ class ModelWithTemperature(nn.Module):
             before_temperature_nll = nll_criterion(logits, labels).item()
             before_temperature_ece = ece_criterion(logits, labels).item()
             before_temperature_csece, _ = csece_criterion(logits, labels)
-            if acc_chaeck:
+            if acc_check:
                 _, accuracy, _, _, _ = test_classification_net_logits(self.class_temperature_scale(logits), labels)
                         
             if self.log:
@@ -148,7 +148,7 @@ class ModelWithTemperature(nn.Module):
             T_csece = init_temp*torch.ones(logits.size()[1]).cuda()
             self.csece_temperature = T_csece
             self.ece_list.append(ece_criterion(self.class_temperature_scale(logits), labels).item())
-            if acc_chaeck:
+            if acc_check:
                 _, temp_accuracy, _, _, _ = test_classification_net_logits(self.class_temperature_scale(logits), labels)
                 if temp_accuracy >= accuracy:
                     accuracy = temp_accuracy
@@ -167,7 +167,7 @@ class ModelWithTemperature(nn.Module):
                         after_temperature_nll = nll_criterion(self.temperature_scale(logits), labels).item()
                         after_temperature_ece = ece_criterion(self.class_temperature_scale(logits), labels).item()
                         after_temperature_ece_reg = ece_criterion(self.temperature_scale(logits), labels).item()
-                        if acc_chaeck:
+                        if acc_check:
                             _, temp_accuracy, _, _, _ = test_classification_net_logits(self.class_temperature_scale(logits), labels)
                         
                         if nll_val > after_temperature_nll:
@@ -178,7 +178,7 @@ class ModelWithTemperature(nn.Module):
                             T_opt_ece = T
                             ece_val = after_temperature_ece_reg
 
-                        if acc_chaeck:
+                        if acc_check:
                             if csece_val > after_temperature_ece and temp_accuracy >= accuracy:
                                 T_opt_csece[label] = T
                                 csece_val = after_temperature_ece
