@@ -63,6 +63,7 @@ def parseArgs():
     train_batch_size = 128
     test_batch_size = 128
     cross_validation_error = 'ece'
+    trained_loss = 'cross_entropy'
 
     parser = argparse.ArgumentParser(
         description="Evaluating a single model on calibration metrics.",
@@ -111,6 +112,9 @@ def parseArgs():
     parser.add_argument("--save-path-plots", type=str, default=save_plots_loc,
                         dest="save_plots_loc",
                         help='Path to save plots')
+    parser.add_argument("--loss", type=str, default=trained_loss,
+                        dest="trained_loss",
+                        help='Trained loss(cross_entropy/focal_loss/focal_loss_adaptive/mmce/mmce_weighted/brier_score)')
 
     return parser.parse_args()
 
@@ -161,6 +165,7 @@ if __name__ == "__main__":
     pos_neg_ece = args.pos_neg_ece
     uncalibrate_check = args.uncalibrated_check
     font_size = 8
+    trained_loss = args.trained_loss
 
     # Taking input for the dataset
     num_classes = dataset_num_classes[dataset]
@@ -226,7 +231,7 @@ if __name__ == "__main__":
             plt.xticks(fontsize=14)
             plt.ylabel('positive ECE', fontsize=font_size)
             plt.yticks(fontsize=14)
-            plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'pos_ece_acc_before_scaling_{}_{}.eps'.format(dataset, args.model)), format='eps', dpi=40)
+            plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'pos_ece_acc_before_scaling_{}_{}_{}.eps'.format(dataset, args.model, trained_loss)), format='eps', dpi=40)
             plt.close()
             
             plt.figure()
@@ -236,7 +241,7 @@ if __name__ == "__main__":
             plt.xticks(fontsize=14)
             plt.ylabel('negative ECE', fontsize=font_size)
             plt.yticks(fontsize=14)
-            plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'neg_ece_acc_before_scaling_{}_{}.eps'.format(dataset, args.model)), format='eps', dpi=40)
+            plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'neg_ece_acc_before_scaling_{}_{}_{}.eps'.format(dataset, args.model, trained_loss)), format='eps', dpi=40)
             plt.close()
         
         # ECE vs. accuracy per class
@@ -249,7 +254,7 @@ if __name__ == "__main__":
         plt.xticks(fontsize=14)
         plt.ylabel('ECE', fontsize=font_size)
         plt.yticks(fontsize=14)
-        plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'ece_acc_before_scaling_{}_{}.eps'.format(dataset, args.model)), format='eps', dpi=40)
+        plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'ece_acc_before_scaling_{}_{}_{}.eps'.format(dataset, args.model, trained_loss)), format='eps', dpi=40)
         plt.close()
     
     # Printing the required evaluation metrics
@@ -282,7 +287,7 @@ if __name__ == "__main__":
             plt.xticks(fontsize=14)
             plt.ylabel('ECE', fontsize=font_size)
             plt.yticks(fontsize=14)
-            plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'ece_iters_{}_{}_{}.eps'.format(init_temp, dataset, args.model)), format='eps', dpi=40)
+            plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'ece_iters_{}_{}_{}_{}.eps'.format(init_temp, dataset, args.model, trained_loss)), format='eps', dpi=40)
             plt.close()
     conf_matrix, accuracy, _, _, _ = test_classification_net_logits(logits, labels)
 
@@ -307,7 +312,7 @@ if __name__ == "__main__":
             plt.xticks(fontsize=14)
             plt.ylabel('positive ECE', fontsize=font_size)
             plt.yticks(fontsize=14)
-            plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'pos_ece_acc_after_scaling_{}_{}.eps'.format(dataset, args.model)), format='eps', dpi=40)
+            plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'pos_ece_acc_after_scaling_{}_{}_{}.eps'.format(dataset, args.model, trained_loss)), format='eps', dpi=40)
             plt.close()
             
             plt.figure()
@@ -317,7 +322,7 @@ if __name__ == "__main__":
             plt.xticks(fontsize=14)
             plt.ylabel('negative ECE', fontsize=font_size)
             plt.yticks(fontsize=14)
-            plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'neg_ece_acc_after_scaling_{}_{}.eps'.format(dataset, args.model)), format='eps', dpi=40)
+            plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'neg_ece_acc_after_scaling_{}_{}_{}.eps'.format(dataset, args.model, trained_loss)), format='eps', dpi=40)
             plt.close()
             
         # ECE vs. accuracy per class    
@@ -331,9 +336,9 @@ if __name__ == "__main__":
         plt.ylabel('ECE', fontsize=font_size)
         plt.yticks(fontsize=14)
         if const_temp:
-            plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'ece_acc_after_scaling_{}_{}_const_temp.eps'.format(dataset, args.model)), format='eps', dpi=40)
+            plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'ece_acc_after_scaling_{}_{}_{}_const_temp.eps'.format(dataset, args.model, trained_loss)), format='eps', dpi=40)
         else:
-            plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'ece_acc_after_scaling_{}_{}.eps'.format(dataset, args.model)), format='eps', dpi=40)
+            plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'ece_acc_after_scaling_{}_{}_{}.eps'.format(dataset, args.model, trained_loss)), format='eps', dpi=40)
         
         if uncalibrate_check:
             plt.figure()
@@ -345,7 +350,7 @@ if __name__ == "__main__":
             plt.xticks(fontsize=14)
             plt.ylabel('ECE', fontsize=font_size)
             plt.yticks(fontsize=14)
-            plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'uncalibrated_ece_acc_after_scaling_{}_{}.eps'.format(dataset, args.model)), format='eps', dpi=40)
+            plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'uncalibrated_ece_acc_after_scaling_{}_{}_{}.eps'.format(dataset, args.model, trained_loss)), format='eps', dpi=40)
     
     if args.log:
         print ('Optimal temperature: ' + str(T_opt))
