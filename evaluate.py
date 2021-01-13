@@ -319,7 +319,7 @@ if __name__ == "__main__":
             plt.ylabel('positive ECE', fontsize=font_size)
             plt.yticks(fontsize=font_size)
             if acc_check:
-                plt.savefig(os.path.join(save_plots_loc, '{}_{}_acc'.format(dataset, args.model), 'pos_ece_acc_after_scaling_{}_{}_{}.eps'.format(dataset, args.model, trained_loss)), format='eps', dpi=40)
+                plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'pos_ece_acc_after_scaling_{}_{}_{}_acc.eps'.format(dataset, args.model, trained_loss)), format='eps', dpi=40)
             else:
                 plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'pos_ece_acc_after_scaling_{}_{}_{}.eps'.format(dataset, args.model, trained_loss)), format='eps', dpi=40)
             plt.close()
@@ -332,7 +332,7 @@ if __name__ == "__main__":
             plt.ylabel('negative ECE', fontsize=font_size)
             plt.yticks(fontsize=font_size)
             if acc_check:
-                plt.savefig(os.path.join(save_plots_loc, '{}_{}_acc'.format(dataset, args.model), 'neg_ece_acc_after_scaling_{}_{}_{}.eps'.format(dataset, args.model, trained_loss)), format='eps', dpi=40)
+                plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'neg_ece_acc_after_scaling_{}_{}_{}_acc.eps'.format(dataset, args.model, trained_loss)), format='eps', dpi=40)
             else:
                 plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'neg_ece_acc_after_scaling_{}_{}_{}.eps'.format(dataset, args.model, trained_loss)), format='eps', dpi=40)
             plt.close()
@@ -351,7 +351,7 @@ if __name__ == "__main__":
             plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'ece_acc_after_scaling_{}_{}_{}_const_temp.eps'.format(dataset, args.model, trained_loss)), format='eps', dpi=40)
         else:
             if acc_check:
-                plt.savefig(os.path.join(save_plots_loc, '{}_{}_acc'.format(dataset, args.model), 'ece_acc_after_scaling_{}_{}_{}.eps'.format(dataset, args.model, trained_loss)), format='eps', dpi=40)
+                plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'ece_acc_after_scaling_{}_{}_{}_acc.eps'.format(dataset, args.model, trained_loss)), format='eps', dpi=40)
             else:
                 plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'ece_acc_after_scaling_{}_{}_{}.eps'.format(dataset, args.model, trained_loss)), format='eps', dpi=40)
         
@@ -366,7 +366,7 @@ if __name__ == "__main__":
             plt.ylabel('ECE', fontsize=font_size)
             plt.yticks(fontsize=font_size)
             if acc_check:
-                plt.savefig(os.path.join(save_plots_loc, '{}_{}_acc'.format(dataset, args.model), 'uncalibrated_ece_acc_after_scaling_{}_{}_{}.eps'.format(dataset, args.model, trained_loss)), format='eps', dpi=40)
+                plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'uncalibrated_ece_acc_after_scaling_{}_{}_{}_acc.eps'.format(dataset, args.model, trained_loss)), format='eps', dpi=40)
             else:
                 plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'uncalibrated_ece_acc_after_scaling_{}_{}_{}.eps'.format(dataset, args.model, trained_loss)), format='eps', dpi=40)
     
