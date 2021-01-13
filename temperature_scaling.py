@@ -136,6 +136,8 @@ class ModelWithTemperature(nn.Module):
             before_temperature_nll = nll_criterion(logits, labels).item()
             before_temperature_ece = ece_criterion(logits, labels).item()
             before_temperature_csece, _ = csece_criterion(logits, labels)
+            
+            _, accuracy, _, _, _ = test_classification_net_logits(self.class_temperature_scale(logits), labels)
                         
             if self.log:
                 print('Before temperature - NLL: {0:.3f}, ECE: {1:.3f}, classECE: {2}'.format(before_temperature_nll, before_temperature_ece, before_temperature_csece))
@@ -146,6 +148,10 @@ class ModelWithTemperature(nn.Module):
             T_csece = init_temp*torch.ones(logits.size()[1]).cuda()
             self.csece_temperature = T_csece
             self.ece_list.append(ece_criterion(self.class_temperature_scale(logits), labels).item())
+            _, temp_accuracy, _, _, _ = test_classification_net_logits(self.class_temperature_scale(logits), labels)
+            if temp_accuracy >= accuracy:
+                accuracy = temp_accuracy
+            
             for iter in range(iters):
                 for label in range(logits.size()[1]):
                     T = 0.1
@@ -160,7 +166,8 @@ class ModelWithTemperature(nn.Module):
                         after_temperature_nll = nll_criterion(self.temperature_scale(logits), labels).item()
                         after_temperature_ece = ece_criterion(self.class_temperature_scale(logits), labels).item()
                         after_temperature_ece_reg = ece_criterion(self.temperature_scale(logits), labels).item()
-
+                        
+                        _, temp_accuracy, _, _, _ = test_classification_net_logits(self.class_temperature_scale(logits), labels)
                         
                         if nll_val > after_temperature_nll:
                             T_opt_nll = T
@@ -169,11 +176,11 @@ class ModelWithTemperature(nn.Module):
                         if ece_val > after_temperature_ece_reg:
                             T_opt_ece = T
                             ece_val = after_temperature_ece_reg
-                        
 
-                        if csece_val > after_temperature_ece:
+                        if csece_val > after_temperature_ece and temp_accuracy >= accuracy:
                             T_opt_csece[label] = T
                             csece_val = after_temperature_ece
+                            accuracy = temp_accuracy
                         T += 0.1
                     T_csece[label] = T_opt_csece[label]
                 self.ece_list.append(ece_criterion(self.class_temperature_scale(logits), labels).item())
