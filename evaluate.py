@@ -103,6 +103,8 @@ def parseArgs():
                         help="whether to calculate positiv and negative ECE for each class")
     parser.add_argument("-unc", action="store_true", dest="uncalibrated_check",
                         help="whether to calculate ECE for each class of uncalibrated model")
+    parser.add_argument("-acc", action="store_true", dest="acc_check",
+                        help="whether to calculate ECE for each class only if accuracy gets better")
     parser.add_argument("-iters", type=int, default=1,
                         dest="temp_opt_iters", help="number of temprature scaling iterations")
     parser.add_argument("-init_temp", type=float, default=2.5,
@@ -166,6 +168,7 @@ if __name__ == "__main__":
     uncalibrate_check = args.uncalibrated_check
     font_size = 10
     trained_loss = args.trained_loss
+    acc_check = args.acc_check
 
     # Taking input for the dataset
     num_classes = dataset_num_classes[dataset]
@@ -270,7 +273,7 @@ if __name__ == "__main__":
 
 
     scaled_model = ModelWithTemperature(net, args.log, const_temp=const_temp)
-    scaled_model.set_temperature(val_loader, temp_opt_iters, cross_validate=cross_validation_error, init_temp=init_temp)
+    scaled_model.set_temperature(val_loader, temp_opt_iters, cross_validate=cross_validation_error, init_temp=init_temp, acc_check=acc_check)
     logits, labels = get_logits_labels(test_loader, scaled_model)
     ece = ece_criterion(logits, labels).item()
     if const_temp:
@@ -287,7 +290,10 @@ if __name__ == "__main__":
             plt.xticks(fontsize=font_size)
             plt.ylabel('ECE', fontsize=font_size)
             plt.yticks(fontsize=font_size)
-            plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'ece_iters_{}_{}_{}_{}.eps'.format(init_temp, dataset, args.model, trained_loss)), format='eps', dpi=40)
+            if acc_check:
+                plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'ece_iters_{}_{}_{}_{}_acc.eps'.format(init_temp, dataset, args.model, trained_loss)), format='eps', dpi=40)
+            else:
+                plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'ece_iters_{}_{}_{}_{}.eps'.format(init_temp, dataset, args.model, trained_loss)), format='eps', dpi=40)
             plt.close()
     conf_matrix, accuracy, _, _, _ = test_classification_net_logits(logits, labels)
 
@@ -312,7 +318,10 @@ if __name__ == "__main__":
             plt.xticks(fontsize=font_size)
             plt.ylabel('positive ECE', fontsize=font_size)
             plt.yticks(fontsize=font_size)
-            plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'pos_ece_acc_after_scaling_{}_{}_{}.eps'.format(dataset, args.model, trained_loss)), format='eps', dpi=40)
+            if acc_check:
+                plt.savefig(os.path.join(save_plots_loc, '{}_{}_acc'.format(dataset, args.model), 'pos_ece_acc_after_scaling_{}_{}_{}.eps'.format(dataset, args.model, trained_loss)), format='eps', dpi=40)
+            else:
+                plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'pos_ece_acc_after_scaling_{}_{}_{}.eps'.format(dataset, args.model, trained_loss)), format='eps', dpi=40)
             plt.close()
             
             plt.figure()
@@ -322,7 +331,10 @@ if __name__ == "__main__":
             plt.xticks(fontsize=font_size)
             plt.ylabel('negative ECE', fontsize=font_size)
             plt.yticks(fontsize=font_size)
-            plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'neg_ece_acc_after_scaling_{}_{}_{}.eps'.format(dataset, args.model, trained_loss)), format='eps', dpi=40)
+            if acc_check:
+                plt.savefig(os.path.join(save_plots_loc, '{}_{}_acc'.format(dataset, args.model), 'neg_ece_acc_after_scaling_{}_{}_{}.eps'.format(dataset, args.model, trained_loss)), format='eps', dpi=40)
+            else:
+                plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'neg_ece_acc_after_scaling_{}_{}_{}.eps'.format(dataset, args.model, trained_loss)), format='eps', dpi=40)
             plt.close()
             
         # ECE vs. accuracy per class    
@@ -338,7 +350,10 @@ if __name__ == "__main__":
         if const_temp:
             plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'ece_acc_after_scaling_{}_{}_{}_const_temp.eps'.format(dataset, args.model, trained_loss)), format='eps', dpi=40)
         else:
-            plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'ece_acc_after_scaling_{}_{}_{}.eps'.format(dataset, args.model, trained_loss)), format='eps', dpi=40)
+            if acc_check:
+                plt.savefig(os.path.join(save_plots_loc, '{}_{}_acc'.format(dataset, args.model), 'ece_acc_after_scaling_{}_{}_{}.eps'.format(dataset, args.model, trained_loss)), format='eps', dpi=40)
+            else:
+                plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'ece_acc_after_scaling_{}_{}_{}.eps'.format(dataset, args.model, trained_loss)), format='eps', dpi=40)
         
         if uncalibrate_check:
             plt.figure()
@@ -350,7 +365,10 @@ if __name__ == "__main__":
             plt.xticks(fontsize=font_size)
             plt.ylabel('ECE', fontsize=font_size)
             plt.yticks(fontsize=font_size)
-            plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'uncalibrated_ece_acc_after_scaling_{}_{}_{}.eps'.format(dataset, args.model, trained_loss)), format='eps', dpi=40)
+            if acc_check:
+                plt.savefig(os.path.join(save_plots_loc, '{}_{}_acc'.format(dataset, args.model), 'uncalibrated_ece_acc_after_scaling_{}_{}_{}.eps'.format(dataset, args.model, trained_loss)), format='eps', dpi=40)
+            else:
+                plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'uncalibrated_ece_acc_after_scaling_{}_{}_{}.eps'.format(dataset, args.model, trained_loss)), format='eps', dpi=40)
     
     if args.log:
         print ('Optimal temperature: ' + str(T_opt))
