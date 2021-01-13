@@ -6,6 +6,7 @@ import numpy as np
 from torch import nn, optim
 from torch.nn import functional as F
 
+from Metrics.metrics import test_classification_net_logits
 from Metrics.metrics import ECELoss, ClassECELoss, posnegECELoss
 
 
