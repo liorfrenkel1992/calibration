@@ -164,7 +164,7 @@ if __name__ == "__main__":
     init_temp = args.init_temp
     pos_neg_ece = args.pos_neg_ece
     uncalibrate_check = args.uncalibrated_check
-    font_size = 8
+    font_size = 10
     trained_loss = args.trained_loss
 
     # Taking input for the dataset
@@ -228,9 +228,9 @@ if __name__ == "__main__":
             plt.scatter(p_acc, p_csece_pos.cpu())
             #plt.title('Classes pos ECE vs. classes accuracy before scaling, {}, {}'.format(dataset, args.model))
             plt.xlabel('accuracy', fontsize=font_size)
-            plt.xticks(fontsize=14)
+            plt.xticks(fontsize=font_size)
             plt.ylabel('positive ECE', fontsize=font_size)
-            plt.yticks(fontsize=14)
+            plt.yticks(fontsize=font_size)
             plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'pos_ece_acc_before_scaling_{}_{}_{}.eps'.format(dataset, args.model, trained_loss)), format='eps', dpi=40)
             plt.close()
             
@@ -238,9 +238,9 @@ if __name__ == "__main__":
             plt.scatter(p_acc, p_csece_neg.cpu())
             #plt.title('Classes neg ECE vs. classes accuracy before scaling, {}, {}'.format(dataset, args.model))
             plt.xlabel('accuracy', fontsize=font_size)
-            plt.xticks(fontsize=14)
+            plt.xticks(fontsize=font_size)
             plt.ylabel('negative ECE', fontsize=font_size)
-            plt.yticks(fontsize=14)
+            plt.yticks(fontsize=font_size)
             plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'neg_ece_acc_before_scaling_{}_{}_{}.eps'.format(dataset, args.model, trained_loss)), format='eps', dpi=40)
             plt.close()
         
@@ -251,9 +251,9 @@ if __name__ == "__main__":
         #plt.legend('temperature scaling ECE', 'constant temperature ECE')
         #plt.title('Classes ECE vs. classes accuracy before scaling, {}, {}'.format(dataset, args.model))
         plt.xlabel('accuracy', fontsize=font_size)
-        plt.xticks(fontsize=14)
+        plt.xticks(fontsize=font_size)
         plt.ylabel('ECE', fontsize=font_size)
-        plt.yticks(fontsize=14)
+        plt.yticks(fontsize=font_size)
         plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'ece_acc_before_scaling_{}_{}_{}.eps'.format(dataset, args.model, trained_loss)), format='eps', dpi=40)
         plt.close()
     
@@ -284,9 +284,9 @@ if __name__ == "__main__":
             plt.legend(('class-based temp scaling', 'const temp scaling'))
             #plt.title('ECE vs. temperature scaling iterations, initial temp: {0}'.format(init_temp))
             plt.xlabel('iterations', fontsize=font_size)
-            plt.xticks(fontsize=14)
+            plt.xticks(fontsize=font_size)
             plt.ylabel('ECE', fontsize=font_size)
-            plt.yticks(fontsize=14)
+            plt.yticks(fontsize=font_size)
             plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'ece_iters_{}_{}_{}_{}.eps'.format(init_temp, dataset, args.model, trained_loss)), format='eps', dpi=40)
             plt.close()
     conf_matrix, accuracy, _, _, _ = test_classification_net_logits(logits, labels)
@@ -309,9 +309,9 @@ if __name__ == "__main__":
             plt.scatter(accuracies, csece_pos.cpu())
             #plt.title('Classes pos ECE vs. classes accuracy after scaling, {}, {}'.format(dataset, args.model))
             plt.xlabel('accuracy', fontsize=font_size)
-            plt.xticks(fontsize=14)
+            plt.xticks(fontsize=font_size)
             plt.ylabel('positive ECE', fontsize=font_size)
-            plt.yticks(fontsize=14)
+            plt.yticks(fontsize=font_size)
             plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'pos_ece_acc_after_scaling_{}_{}_{}.eps'.format(dataset, args.model, trained_loss)), format='eps', dpi=40)
             plt.close()
             
@@ -319,9 +319,9 @@ if __name__ == "__main__":
             plt.scatter(accuracies, csece_neg.cpu())
             #plt.title('Classes neg ECE vs. classes accuracy after scaling, {}, {}'.format(dataset, args.model))
             plt.xlabel('accuracy', fontsize=font_size)
-            plt.xticks(fontsize=14)
+            plt.xticks(fontsize=font_size)
             plt.ylabel('negative ECE', fontsize=font_size)
-            plt.yticks(fontsize=14)
+            plt.yticks(fontsize=font_size)
             plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'neg_ece_acc_after_scaling_{}_{}_{}.eps'.format(dataset, args.model, trained_loss)), format='eps', dpi=40)
             plt.close()
             
@@ -332,9 +332,9 @@ if __name__ == "__main__":
         #plt.legend('temperature scaling ECE', 'constant temperature ECE')
         #plt.title('Classes ECE vs. classes accuracy after scaling, {}, {}'.format(dataset, args.model))
         plt.xlabel('accuracy', fontsize=font_size)
-        plt.xticks(fontsize=14)
+        plt.xticks(fontsize=font_size)
         plt.ylabel('ECE', fontsize=font_size)
-        plt.yticks(fontsize=14)
+        plt.yticks(fontsize=font_size)
         if const_temp:
             plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'ece_acc_after_scaling_{}_{}_{}_const_temp.eps'.format(dataset, args.model, trained_loss)), format='eps', dpi=40)
         else:
@@ -347,9 +347,9 @@ if __name__ == "__main__":
             #plt.legend('temperature scaling ECE', 'constant temperature ECE')
             #plt.title('Classes ECE vs. classes accuracy after scaling, {}, {}'.format(dataset, args.model))
             plt.xlabel('accuracy', fontsize=font_size)
-            plt.xticks(fontsize=14)
+            plt.xticks(fontsize=font_size)
             plt.ylabel('ECE', fontsize=font_size)
-            plt.yticks(fontsize=14)
+            plt.yticks(fontsize=font_size)
             plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'uncalibrated_ece_acc_after_scaling_{}_{}_{}.eps'.format(dataset, args.model, trained_loss)), format='eps', dpi=40)
     
     if args.log:
