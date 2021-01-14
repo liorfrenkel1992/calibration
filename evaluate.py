@@ -121,7 +121,7 @@ def parseArgs():
     return parser.parse_args()
 
 
-def get_logits_labels(data_loader, net, const_temp=False):
+def get_logits_labels_const(data_loader, net, const_temp=False):
     logits_list = []
     labels_list = []
     net.eval()
@@ -129,6 +129,20 @@ def get_logits_labels(data_loader, net, const_temp=False):
         for data, label in data_loader:
             data = data.cuda()
             logits = net(data, const_temp=const_temp)
+            logits_list.append(logits)
+            labels_list.append(label)
+        logits = torch.cat(logits_list).cuda()
+        labels = torch.cat(labels_list).cuda()
+    return logits, labels
+
+def get_logits_labels(data_loader, net):
+    logits_list = []
+    labels_list = []
+    net.eval()
+    with torch.no_grad():
+        for data, label in data_loader:
+            data = data.cuda()
+            logits = net(data)
             logits_list.append(logits)
             labels_list.append(label)
         logits = torch.cat(logits_list).cuda()
@@ -278,7 +292,7 @@ if __name__ == "__main__":
     ece = ece_criterion(logits, labels).item()
     
     # For const temp scaling
-    logits_const, labels_const = get_logits_labels(test_loader, scaled_model, const_temp=True)
+    logits_const, labels_const = get_logits_labels_const(test_loader, scaled_model, const_temp=True)
     ece_const = ece_criterion(logits_const, labels_const).item()
     
     if const_temp:
