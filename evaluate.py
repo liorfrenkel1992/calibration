@@ -121,14 +121,14 @@ def parseArgs():
     return parser.parse_args()
 
 
-def get_logits_labels(data_loader, net):
+def get_logits_labels(data_loader, net, const_temp=False):
     logits_list = []
     labels_list = []
     net.eval()
     with torch.no_grad():
         for data, label in data_loader:
             data = data.cuda()
-            logits = net(data)
+            logits = net(data, const_temp=const_temp)
             logits_list.append(logits)
             labels_list.append(label)
         logits = torch.cat(logits_list).cuda()
@@ -276,6 +276,11 @@ if __name__ == "__main__":
     scaled_model.set_temperature(val_loader, temp_opt_iters, cross_validate=cross_validation_error, init_temp=init_temp, acc_check=acc_check)
     logits, labels = get_logits_labels(test_loader, scaled_model)
     ece = ece_criterion(logits, labels).item()
+    
+    # For const temp scaling
+    logits_const, labels_const = get_logits_labels(test_loader, scaled_model, const_temp=True)
+    ece_const = ece_criterion(logits_const, labels_const).item()
+    
     if const_temp:
         T_opt = scaled_model.get_temperature()
     else:
@@ -377,7 +382,8 @@ if __name__ == "__main__":
         print (conf_matrix)
         print ('Test error: ' + str((1 - accuracy)))
         print ('Test NLL: ' + str(nll))
-        print ('ECE: ' + str(ece))
+        print ('ECE (Class-based temp scaling): ' + str(ece))
+        print ('ECE (constant temp scaling): ' + str(ece_const))
         print ('AdaECE: ' + str(adaece))
         print ('Classwise ECE: ' + str(cece))
         print ('Classes ECE: ' + str(csece))
