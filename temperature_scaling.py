@@ -154,12 +154,18 @@ class ModelWithTemperature(nn.Module):
                 if temp_accuracy >= accuracy:
                     accuracy = temp_accuracy
             
+            nll_val = 10 ** 7
+            ece_val = 10 ** 7
+            csece_val = 10 ** 7
+                    
             for iter in range(iters):
                 for label in range(logits.size()[1]):
                     T = 0.1
+                    """
                     nll_val = 10 ** 7
                     ece_val = 10 ** 7
                     csece_val = 10 ** 7
+                    """
                     for i in range(100):
                         T_csece[label] = T
                         self.csece_temperature = T_csece
@@ -190,6 +196,7 @@ class ModelWithTemperature(nn.Module):
                                 csece_val = after_temperature_ece
                         T += 0.1
                     T_csece[label] = T_opt_csece[label]
+                self.csece_temperature = T_opt_csece
                 self.ece_list.append(ece_criterion(self.class_temperature_scale(logits), labels).item())
 
             if cross_validate == 'ece':
