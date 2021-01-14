@@ -28,9 +28,9 @@ class ModelWithTemperature(nn.Module):
         self.ece = 0.0
 
 
-    def forward(self, input):
+    def forward(self, input, const_temp=False):
         logits = self.model(input)
-        if self.const_temp:
+        if self.const_temp or const_temp:
             return self.temperature_scale(logits)
         else:
             return self.class_temperature_scale(logits)
