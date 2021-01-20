@@ -8,6 +8,7 @@ References:
 
 import math
 import matplotlib.pyplot as plt
+import os
 plt.rcParams.update({'font.size': 20})
 
 # Some keys used for the following dictionaries
@@ -92,3 +93,92 @@ def bin_strength_plot(confs, preds, labels, num_bins=15):
     plt.ylabel('Percentage of samples')
     plt.xlabel('Confidence')
     plt.show()
+    
+def pos_neg_ece_plot(acc, csece_pos, csece_neg, save_plots_loc, dataset, model, trained_loss, acc_check=False, scaling_related='before'):
+    plt.figure()
+    plt.scatter(acc, csece_pos.cpu())
+    plt.xlabel('accuracy', fontsize=10)
+    plt.xticks(fontsize=10)
+    plt.ylabel('positive ECE', fontsize=10)
+    plt.yticks(fontsize=10)
+    if acc_check:
+        plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'pos_ece_acc_{}_scaling_{}_{}_{}_acc.eps'.format(scaling_related, dataset, model, trained_loss)), dpi=40)
+    else:
+        plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'pos_ece_acc_{}_scaling_{}_{}_{}.eps'.format(scaling_related, dataset, model, trained_loss)), dpi=40)
+    plt.close()
+
+    plt.figure()
+    plt.scatter(acc, csece_neg.cpu())
+    plt.xlabel('accuracy', fontsize=10)
+    plt.xticks(fontsize=10)
+    plt.ylabel('negative ECE', fontsize=10)
+    plt.yticks(fontsize=10)
+    if acc_check:
+        plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'neg_ece_acc_{}_scaling_{}_{}_{}_acc.eps'.format(scaling_related, dataset, model, trained_loss)), dpi=40)
+    else:
+        plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'neg_ece_acc_{}_scaling_{}_{}_{}.eps'.format(scaling_related, dataset, model, trained_loss)), dpi=40)
+    plt.close()
+    
+def ece_acc_plot(acc, csece, save_plots_loc, dataset, model, trained_loss, acc_check=False, scaling_related='before', const_temp=False, unc=False):
+    plt.figure()
+    plt.scatter(acc, csece.cpu())
+    plt.xlabel('accuracy', fontsize=10)
+    plt.xticks(fontsize=10)
+    plt.ylabel('ECE', fontsize=10)
+    plt.yticks(fontsize=10)
+    if const_temp:
+        plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'ece_acc_{}_scaling_{}_{}_{}_const_temp.eps'.format(scaling_related, dataset, model, trained_loss)), dpi=40)
+    else:
+        if acc_check:
+            if unc:
+                plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'uncalibrated_ece_acc_{}_scaling_{}_{}_{}_acc.eps'.format(scaling_related, dataset, model, trained_loss)), dpi=40)
+            else:
+                plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'ece_acc_{}_scaling_{}_{}_{}_acc.eps'.format(scaling_related, dataset, model, trained_loss)), dpi=40)
+        else:
+            if unc:
+                plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'uncalibrated_ece_acc_{}_scaling_{}_{}_{}.eps'.format(scaling_related, dataset, model, trained_loss)), dpi=40)
+            else:
+                plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'ece_acc_{}_scaling_{}_{}_{}.eps'.format(scaling_related, dataset, model, trained_loss)), dpi=40)
+    plt.close()
+    
+def ece_iters_plot(iters, scaled_model, save_plots_loc, dataset, model, trained_loss, init_temp, acc_check=False):
+    plt.figure()
+    plt.plot(range(iters + 1), scaled_model.ece_list)
+    plt.plot(range(iters + 1), scaled_model.ece*torch.ones(iters + 1))
+    plt.legend(('class-based temp scaling', 'single temp scaling'))
+    plt.xlabel('iterations', fontsize=10)
+    plt.xticks(fontsize=10)
+    plt.ylabel('ECE', fontsize=10)
+    plt.yticks(fontsize=10)
+    if acc_check:
+        plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'ece_iters_{}_{}_{}_{}_acc.eps'.format(init_temp, dataset, model, trained_loss)), dpi=40)
+    else:
+        plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'ece_iters_{}_{}_{}_{}.eps'.format(init_temp, dataset, model, trained_loss)), dpi=40)
+    plt.close()
+    
+def temp_acc_plot(acc, temp, save_plots_loc, dataset, model, trained_loss, acc_check=False, const_temp=False):
+    plt.figure()
+    plt.scatter(acc, temp.cpu())
+    plt.xlabel('accuracy', fontsize=10)
+    plt.xticks(fontsize=10)
+    plt.ylabel('Temperature', fontsize=10)
+    plt.yticks(fontsize=10)
+    if const_temp:
+        plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'temp_acc_after_scaling_{}_{}_{}_const_temp.eps'.format(dataset, model, trained_loss)), dpi=40)
+    else:
+        if acc_check:
+            plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'temp_acc_after_scaling_{}_{}_{}_acc.eps'.format(dataset, model, trained_loss)), dpi=40)
+        else:
+            plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'temp_acc_after_scaling_{}_{}_{}.eps'.format(dataset, model, trained_loss)), dpi=40)
+            
+def diff_ece_plot(acc, csece1, csece2, save_plots_loc, dataset, model, trained_loss, acc_check=False, scaling_type='class_based'):
+    plt.figure()
+    plt.scatter(acc, (csece1 - csece2).cpu())
+    plt.xlabel('accuracy', fontsize=10)
+    plt.xticks(fontsize=10)
+    plt.ylabel('ECE difference', fontsize=10)
+    plt.yticks(fontsize=10)
+    if acc_check:
+        plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'diff_{}_ece_acc_after_scaling_{}_{}_{}_acc.eps'.format(scaling_type, dataset, model, trained_loss)), dpi=40)
+    else:
+        plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'diff_{}_ece_acc_after_scaling_{}_{}_{}.eps'.format(scaling_type, dataset, model, trained_loss)), dpi=40)
