@@ -422,7 +422,7 @@ if __name__ == "__main__":
         if acc_check:
             plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'diff_single_ece_acc_after_scaling_{}_{}_{}_acc.eps'.format(dataset, args.model, trained_loss)), format='eps', dpi=40)
         else:
-            plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'diff_single_ece_acc_after_scaling_{}_{}_{}.eps'.format(dataset, args.model, trained_loss))
+            plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'diff_single_ece_acc_after_scaling_{}_{}_{}.eps'.format(dataset, args.model, trained_loss)), format='eps', dpi=40)
         
         # ECE vs. accuracy per class - Difference between class-based and single temperature scaling
         plt.figure()
@@ -437,7 +437,7 @@ if __name__ == "__main__":
         if acc_check:
             plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'diff_class_based_single_ece_acc_after_scaling_{}_{}_{}_acc.eps'.format(dataset, args.model, trained_loss)), format='eps', dpi=40)
         else:
-            plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'diff_class_based_single_class_based_ece_acc_after_scaling_{}_{}_{}.eps'.format(dataset, args.model, trained_loss))
+            plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'diff_class_based_single_class_based_ece_acc_after_scaling_{}_{}_{}.eps'.format(dataset, args.model, trained_loss)), format='eps', dpi=40)
         
                         
         if uncalibrate_check:
