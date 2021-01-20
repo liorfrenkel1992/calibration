@@ -383,7 +383,7 @@ if __name__ == "__main__":
         #plt.title('Classes ECE vs. classes accuracy after scaling, {}, {}'.format(dataset, args.model))
         plt.xlabel('accuracy', fontsize=font_size)
         plt.xticks(fontsize=font_size)
-        plt.ylabel('ECE', fontsize=font_size)
+        plt.ylabel('Temperature', fontsize=font_size)
         plt.yticks(fontsize=font_size)
         if const_temp:
             plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'temp_acc_after_scaling_{}_{}_{}_const_temp.eps'.format(dataset, args.model, trained_loss)), format='eps', dpi=40)
@@ -402,7 +402,7 @@ if __name__ == "__main__":
         #plt.title('Classes ECE vs. classes accuracy after scaling, {}, {}'.format(dataset, args.model))
         plt.xlabel('accuracy', fontsize=font_size)
         plt.xticks(fontsize=font_size)
-        plt.ylabel('ECE', fontsize=font_size)
+        plt.ylabel('ECE difference', fontsize=font_size)
         plt.yticks(fontsize=font_size)
         if acc_check:
             plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'diff_class_based_ece_acc_after_scaling_{}_{}_{}_acc.eps'.format(dataset, args.model, trained_loss)), format='eps', dpi=40)
@@ -417,7 +417,7 @@ if __name__ == "__main__":
         #plt.title('Classes ECE vs. classes accuracy after scaling, {}, {}'.format(dataset, args.model))
         plt.xlabel('accuracy', fontsize=font_size)
         plt.xticks(fontsize=font_size)
-        plt.ylabel('ECE', fontsize=font_size)
+        plt.ylabel('ECE difference', fontsize=font_size)
         plt.yticks(fontsize=font_size)
         if acc_check:
             plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'diff_single_ece_acc_after_scaling_{}_{}_{}_acc.eps'.format(dataset, args.model, trained_loss)), format='eps', dpi=40)
@@ -432,7 +432,7 @@ if __name__ == "__main__":
         #plt.title('Classes ECE vs. classes accuracy after scaling, {}, {}'.format(dataset, args.model))
         plt.xlabel('accuracy', fontsize=font_size)
         plt.xticks(fontsize=font_size)
-        plt.ylabel('ECE', fontsize=font_size)
+        plt.ylabel('ECE difference', fontsize=font_size)
         plt.yticks(fontsize=font_size)
         if acc_check:
             plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, args.model), 'diff_class_based_single_ece_acc_after_scaling_{}_{}_{}_acc.eps'.format(dataset, args.model, trained_loss)), format='eps', dpi=40)
