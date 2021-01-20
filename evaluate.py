@@ -23,6 +23,7 @@ from Net.densenet import densenet121
 # Import metrics to compute
 from Metrics.metrics import test_classification_net_logits
 from Metrics.metrics import ECELoss, AdaptiveECELoss, ClasswiseECELoss, ClassECELoss, posnegECELoss
+from Metrics.plots import reliability_plot, bin_strength_plot
 
 # Import temperature scaling and NLL utilities
 from temperature_scaling import ModelWithTemperature
@@ -226,6 +227,8 @@ if __name__ == "__main__":
 
     logits, labels = get_logits_labels(test_loader, net)
     conf_matrix, p_accuracy, _, _, _ = test_classification_net_logits(logits, labels)
+    
+    #reliability_plot(confidences, predictions, labels, num_bins=num_bins)
 
     p_ece = ece_criterion(logits, labels).item()
     p_adaece = adaece_criterion(logits, labels).item()
@@ -242,7 +245,6 @@ if __name__ == "__main__":
         if pos_neg_ece:
             # pos and neg ECE vs. accuracy per class
             pos_neg_ece_plot(p_acc, p_csece_pos, p_csece_neg, save_plots_loc, dataset, args.model, trained_loss, acc_check=acc_check, scaling_related='before')
-        
         # ECE vs. accuracy per class
         ece_acc_plot(p_acc, p_csece, save_plots_loc, dataset, args.model, trained_loss, acc_check=acc_check, scaling_related='before')
     
@@ -292,23 +294,17 @@ if __name__ == "__main__":
         if pos_neg_ece:
             # pos and neg ECE vs. accuracy per class
             pos_neg_ece_plot(accuracies, csece_pos, csece_neg, save_plots_loc, dataset, args.model, trained_loss, acc_check=acc_check, scaling_related='after')
-            
         # ECE vs. accuracy per class
         ece_acc_plot(acc, csece, save_plots_loc, dataset, args.model, trained_loss, acc_check=acc_check, scaling_related='after')
-                
         # Temperature vs. accuracy per class
         temp_acc_plot(accuracies, T_csece_opt, save_plots_loc, dataset, args.model, trained_loss, acc_check=acc_check)
-                
         # ECE vs. accuracy per class - Difference between before and after temperature scaling
         # Class-based temperature scaling diff
         diff_ece_plot(accuracies, csece, p_csece, save_plots_loc, dataset, args.model, trained_loss, acc_check=acc_check, scaling_type='class_based')
-               
         # Single temperature scaling diff
         diff_ece_plot(accuracies, csece_const, p_csece, save_plots_loc, dataset, args.model, trained_loss, acc_check=acc_check, scaling_type='single')
-        
         # ECE vs. accuracy per class - Difference between class-based and single temperature scaling
         diff_ece_plot(accuracies, csece, csece_const, save_plots_loc, dataset, args.model, trained_loss, acc_check=acc_check, scaling_type='class_based_single')
-                                
         if uncalibrate_check:
             ece_acc_plot(accuracies_uncalibated, csece_uncalibated, save_plots_loc, dataset, args.model, trained_loss, acc_check=acc_check, scaling_related='after', unc=True)
                 
