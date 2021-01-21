@@ -57,7 +57,7 @@ def _populate_bins(confs, preds, labels, num_bins=10):
     return bin_dict
 
 
-def reliability_plot(confs, preds, labels, num_bins=15):
+def reliability_plot(confs, preds, labels, save_plots_loc, dataset, model, trained_loss, num_bins=15, scaling_related='before', save=False):
     '''
     Method to draw a reliability plot from a model's predictions and confidences.
     '''
@@ -73,7 +73,10 @@ def reliability_plot(confs, preds, labels, num_bins=15):
     plt.ylabel('Accuracy')
     plt.xlabel('Confidence')
     plt.legend()
-    plt.show()
+    if save:
+        plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'reliability_plot_{}_{}_{}_{}.eps'.format(scaling_related, dataset, model, trained_loss)), dpi=40)
+    else:
+        plt.show()
 
 
 def bin_strength_plot(confs, preds, labels, num_bins=15):
