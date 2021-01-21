@@ -226,9 +226,9 @@ if __name__ == "__main__":
     posneg_csece_criterion = posnegECELoss().cuda()
 
     logits, labels = get_logits_labels(test_loader, net)
-    conf_matrix, p_accuracy, _, _, _ = test_classification_net_logits(logits, labels)
+    conf_matrix, p_accuracy, _, predictions, confidences = test_classification_net_logits(logits, labels)
     
-    #reliability_plot(confidences, predictions, labels, num_bins=num_bins)
+    reliability_plot(confidences, predictions, labels, save_plots_loc, dataset, args.model, trained_loss, num_bins=num_bins, scaling_related='before', save=True)
 
     p_ece = ece_criterion(logits, labels).item()
     p_adaece = adaece_criterion(logits, labels).item()
@@ -276,7 +276,9 @@ if __name__ == "__main__":
         if create_plots:
             ece_iters_plot(temp_opt_iters, scaled_model, save_plots_loc, dataset, args.model, trained_loss, init_temp, acc_check)
             
-    conf_matrix, accuracy, _, _, _ = test_classification_net_logits(logits, labels)
+    conf_matrix, accuracy, _, predictions, confidences = test_classification_net_logits(logits, labels)
+    
+    reliability_plot(confidences, predictions, labels, save_plots_loc, dataset, argas.model, trained_loss, num_bins=num_bins, scaling_related='after', save=True)
 
     adaece = adaece_criterion(logits, labels).item()
     cece = cece_criterion(logits, labels).item()
