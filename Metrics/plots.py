@@ -149,7 +149,7 @@ def ece_iters_plot(iters, scaled_model, save_plots_loc, dataset, model, trained_
     plt.figure()
     plt.plot(range(iters + 1), scaled_model.ece_list)
     plt.plot(range(iters + 1), scaled_model.ece*torch.ones(iters + 1))
-    plt.legend(('class-based temp scaling', 'single temp scaling'))
+    plt.legend(('class-based temp scaling', 'single temp scaling'), fontsize=10)
     plt.xlabel('iterations', fontsize=10)
     plt.xticks(fontsize=10)
     plt.ylabel('ECE', fontsize=10)
