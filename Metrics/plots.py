@@ -182,7 +182,7 @@ def diff_ece_plot(acc, csece1, csece2, save_plots_loc, dataset, model, trained_l
     plt.xticks(fontsize=10)
     plt.ylabel('ECE difference', fontsize=10)
     plt.yticks(fontsize=10)
-    plt.axhline(y=1, color='r')
+    plt.axhline(y=0, color='r')
     if acc_check:
         plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'diff_{}_ece_acc_after_scaling_{}_{}_{}_acc.pdf'.format(scaling_type, dataset, model, trained_loss)), dpi=40)
     else:
