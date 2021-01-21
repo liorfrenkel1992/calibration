@@ -23,7 +23,7 @@ from Net.densenet import densenet121
 # Import metrics to compute
 from Metrics.metrics import test_classification_net_logits
 from Metrics.metrics import ECELoss, AdaptiveECELoss, ClasswiseECELoss, ClassECELoss, posnegECELoss
-from Metrics.plots import reliability_plot, bin_strength_plot
+from Metrics.plots import reliability_plot, pos_neg_ece_plot, ece_acc_plot, ece_iters_plot, temp_acc_plot, diff_ece_plot
 
 # Import temperature scaling and NLL utilities
 from temperature_scaling import ModelWithTemperature
