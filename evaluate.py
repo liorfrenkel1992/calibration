@@ -278,7 +278,7 @@ if __name__ == "__main__":
             
     conf_matrix, accuracy, _, predictions, confidences = test_classification_net_logits(logits, labels)
     
-    reliability_plot(confidences, predictions, labels, save_plots_loc, dataset, argas.model, trained_loss, num_bins=num_bins, scaling_related='after', save=True)
+    reliability_plot(confidences, predictions, labels, save_plots_loc, dataset, args.model, trained_loss, num_bins=num_bins, scaling_related='after', save=True)
 
     adaece = adaece_criterion(logits, labels).item()
     cece = cece_criterion(logits, labels).item()
