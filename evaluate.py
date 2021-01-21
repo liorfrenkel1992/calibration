@@ -277,8 +277,11 @@ if __name__ == "__main__":
             ece_iters_plot(temp_opt_iters, scaled_model, save_plots_loc, dataset, args.model, trained_loss, init_temp, acc_check)
             
     conf_matrix, accuracy, _, predictions, confidences = test_classification_net_logits(logits, labels)
-    
     reliability_plot(confidences, predictions, labels, save_plots_loc, dataset, args.model, trained_loss, num_bins=num_bins, scaling_related='after', save=True)
+    
+    _, _, _, predictions_const, confidences_const = test_classification_net_logits(logits_const, labels_const)
+    reliability_plot(confidences_const, predictions_const, labels_const, save_plots_loc, dataset, args.model,
+                     trained_loss, num_bins=num_bins, scaling_related='after_const', save=True)
 
     adaece = adaece_criterion(logits, labels).item()
     cece = cece_criterion(logits, labels).item()
