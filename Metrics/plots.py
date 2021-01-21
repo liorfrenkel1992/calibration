@@ -9,6 +9,7 @@ References:
 import math
 import matplotlib.pyplot as plt
 import os
+import torch
 plt.rcParams.update({'font.size': 20})
 
 # Some keys used for the following dictionaries
