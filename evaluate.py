@@ -22,7 +22,7 @@ from Net.densenet import densenet121
 
 # Import metrics to compute
 from Metrics.metrics import test_classification_net_logits
-from Metrics.metrics import ECELoss, AdaptiveECELoss, ClasswiseECELoss, ClassECELoss, posnegECELoss
+from Metrics.metrics import ECELoss, AdaptiveECELoss, ClasswiseECELoss, ClassECELoss, posnegECELoss, binsECELoss
 from Metrics.plots import reliability_plot, pos_neg_ece_plot, ece_acc_plot, ece_iters_plot, temp_acc_plot, diff_ece_plot
 
 # Import temperature scaling and NLL utilities
@@ -224,6 +224,7 @@ if __name__ == "__main__":
     cece_criterion = ClasswiseECELoss().cuda()
     csece_criterion = ClassECELoss().cuda()
     posneg_csece_criterion = posnegECELoss().cuda()
+    bins_csece_criterion = binsECELoss().cuda()
 
     logits, labels = get_logits_labels(test_loader, net)
     conf_matrix, p_accuracy, _, predictions, confidences = test_classification_net_logits(logits, labels)
@@ -235,6 +236,7 @@ if __name__ == "__main__":
     p_cece = cece_criterion(logits, labels).item()
     p_csece, p_acc = csece_criterion(logits, labels)
     if pos_neg_ece:
+        p_csece_high, p_csece_low, _ = bins_csece_criterion(logits, labels)
         p_csece_pos, p_csece_neg, p_acc = posneg_csece_criterion(logits, labels)
     p_nll = nll_criterion(logits, labels).item()
 
@@ -245,6 +247,8 @@ if __name__ == "__main__":
         if pos_neg_ece:
             # pos and neg ECE vs. accuracy per class
             pos_neg_ece_plot(p_acc, p_csece_pos, p_csece_neg, save_plots_loc, dataset, args.model, trained_loss, acc_check=acc_check, scaling_related='before')
+            # high and low bins ECE vs. accuracy per class
+            pos_neg_ece_plot(p_acc, p_csece_high, p_csece_low, save_plots_loc, dataset, args.model, trained_loss, acc_check=acc_check, scaling_related='before_bins')
         # ECE vs. accuracy per class
         ece_acc_plot(p_acc, p_csece, save_plots_loc, dataset, args.model, trained_loss, acc_check=acc_check, scaling_related='before')
     
@@ -290,6 +294,7 @@ if __name__ == "__main__":
     if uncalibrate_check:
         csece_uncalibated, accuracies_uncalibated = csece_criterion(logits*init_temp, labels)
     if pos_neg_ece:
+        csece_high, csece_low, _ = bins_csece_criterion(logits, labels)
         csece_pos, csece_neg, accuracies = posneg_csece_criterion(logits, labels)
     nll = nll_criterion(logits, labels).item()
 
@@ -299,6 +304,9 @@ if __name__ == "__main__":
         if pos_neg_ece:
             # pos and neg ECE vs. accuracy per class
             pos_neg_ece_plot(accuracies, csece_pos, csece_neg, save_plots_loc, dataset, args.model, trained_loss, acc_check=acc_check, scaling_related='after',
+                             const_temp=const_temp)
+            # high and low bins ECE vs. accuracy per class
+            pos_neg_ece_plot(accuracies, csece_high, csece_low, save_plots_loc, dataset, args.model, trained_loss, acc_check=acc_check, scaling_related='after_bins',
                              const_temp=const_temp)
         # ECE vs. accuracy per class
         ece_acc_plot(accuracies, csece, save_plots_loc, dataset, args.model, trained_loss, acc_check=acc_check, scaling_related='after', const_temp=const_temp)
