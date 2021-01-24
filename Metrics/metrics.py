@@ -370,7 +370,7 @@ class binsECELoss(nn.Module):
     Compute per-Class powsitiv and negative ECE
     '''
     def __init__(self, n_bins=15, low_high_bin=0.3):
-        super(posnegECELoss, self).__init__()
+        super(binsECELoss, self).__init__()
         bin_boundaries = torch.linspace(0, 1, n_bins + 1)
         self.bin_lowers = bin_boundaries[:-1]
         self.bin_uppers = bin_boundaries[1:]
