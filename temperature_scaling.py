@@ -160,7 +160,6 @@ class ModelWithTemperature(nn.Module):
                     
             for iter in range(iters):
                 for label in reversed(range(logits.size()[1])):
-                    print(label)
                     T = 0.1
                     """
                     nll_val = 10 ** 7
