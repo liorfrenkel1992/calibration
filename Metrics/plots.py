@@ -98,13 +98,15 @@ def bin_strength_plot(confs, preds, labels, num_bins=15):
     plt.xlabel('Confidence')
     plt.show()
     
-def pos_neg_ece_plot(acc, csece_pos, csece_neg, save_plots_loc, dataset, model, trained_loss, acc_check=False, scaling_related='before'):
+def pos_neg_ece_plot(acc, csece_pos, csece_neg, save_plots_loc, dataset, model, trained_loss, acc_check=False, scaling_related='before', const_temp=False):
     plt.figure()
     plt.scatter(acc, csece_pos.cpu())
     plt.xlabel('accuracy', fontsize=10)
     plt.xticks(fontsize=10)
     plt.ylabel('positive ECE', fontsize=10)
     plt.yticks(fontsize=10)
+    if const_temp:
+        plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'pos_ece_acc_{}_scaling_{}_{}_{}_const_temp.pdf'.format(scaling_related, dataset, model, trained_loss)), dpi=40)
     if acc_check:
         plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'pos_ece_acc_{}_scaling_{}_{}_{}_acc.pdf'.format(scaling_related, dataset, model, trained_loss)), dpi=40)
     else:
