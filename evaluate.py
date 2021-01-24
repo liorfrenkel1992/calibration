@@ -298,7 +298,8 @@ if __name__ == "__main__":
     if create_plots:
         if pos_neg_ece:
             # pos and neg ECE vs. accuracy per class
-            pos_neg_ece_plot(accuracies, csece_pos, csece_neg, save_plots_loc, dataset, args.model, trained_loss, acc_check=acc_check, scaling_related='after')
+            pos_neg_ece_plot(accuracies, csece_pos, csece_neg, save_plots_loc, dataset, args.model, trained_loss, acc_check=acc_check, scaling_related='after',
+                             const_temp=const_temp)
         # ECE vs. accuracy per class
         ece_acc_plot(accuracies, csece, save_plots_loc, dataset, args.model, trained_loss, acc_check=acc_check, scaling_related='after', const_temp=const_temp)
         if not const_temp:
