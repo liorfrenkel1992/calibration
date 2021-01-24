@@ -160,10 +160,10 @@ def ece_iters_plot(iters, scaled_model, save_plots_loc, dataset, model, trained_
         plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'ece_iters_{}_{}_{}_{}.pdf'.format(init_temp, dataset, model, trained_loss)), dpi=40)
     plt.close()
     
-def temp_acc_plot(acc, temp, const_temp, save_plots_loc, dataset, model, trained_loss, acc_check=False, const_temp=False):
+def temp_acc_plot(acc, temp, single_temp, save_plots_loc, dataset, model, trained_loss, acc_check=False, const_temp=False):
     plt.figure()
     plt.scatter(acc, temp.cpu(), label='Class-based temperature')
-    plt.plot(acc, const_temp.cpu(), color='red', label='Single temperature')
+    plt.plot(acc, single_temp.cpu(), color='red', label='Single temperature')
     plt.xlabel('accuracy', fontsize=10)
     plt.xticks(fontsize=10)
     plt.ylabel('Temperature', fontsize=10)
