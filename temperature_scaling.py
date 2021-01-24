@@ -159,7 +159,7 @@ class ModelWithTemperature(nn.Module):
             csece_val = 10 ** 7
                     
             for iter in range(iters):
-                for label in reversed(range(logits.size()[1])):
+                for label in range(logits.size()[1]):
                     T = 0.1
                     """
                     nll_val = 10 ** 7
