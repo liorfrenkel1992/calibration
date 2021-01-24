@@ -301,8 +301,9 @@ if __name__ == "__main__":
             pos_neg_ece_plot(accuracies, csece_pos, csece_neg, save_plots_loc, dataset, args.model, trained_loss, acc_check=acc_check, scaling_related='after')
         # ECE vs. accuracy per class
         ece_acc_plot(accuracies, csece, save_plots_loc, dataset, args.model, trained_loss, acc_check=acc_check, scaling_related='after', const_temp=const_temp)
-        # Temperature vs. accuracy per class
-        temp_acc_plot(accuracies, T_csece_opt, save_plots_loc, dataset, args.model, trained_loss, acc_check=acc_check, const_temp=const_temp)
+        if not const_temp:
+            # Temperature vs. accuracy per class
+            temp_acc_plot(accuracies, T_csece_opt, T_opt, save_plots_loc, dataset, args.model, trained_loss, acc_check=acc_check, const_temp=const_temp)
         """
         # ECE vs. accuracy per class - Difference between before and after temperature scaling
         # Class-based temperature scaling diff
