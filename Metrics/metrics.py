@@ -393,8 +393,8 @@ class binsECELoss(nn.Module):
             class_choices = choices[labels.eq(i)]
             class_choices = torch.sum(class_choices.eq(i)).item()
             class_accuracy = class_choices / torch.sum(labels.eq(i)).item()
-            class_sce_pos = torch.zeros(1, device=logits.device)
-            class_sce_neg = torch.zeros(1, device=logits.device)
+            class_sce_high = torch.zeros(1, device=logits.device)
+            class_sce_low = torch.zeros(1, device=logits.device)
             labels_in_class = labels.eq(i) # one-hot vector of all positions where the label belongs to the class i
 
             for bin_lower, bin_upper in zip(self.bin_lowers, self.bin_uppers):
