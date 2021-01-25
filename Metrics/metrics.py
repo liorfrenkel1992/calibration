@@ -421,10 +421,10 @@ class binsECELoss(nn.Module):
                 
             classes_acc.append(class_accuracy)
         print('total samples number: ', labels.shape[0])
-        print('high bins counts sum: ', torch.sum(counts_over).item())
-        print('low bins counts sum: ', torch.sum(counts_under).item())
-        print('high bins: ', torch.mean(torch.FloatTensor(bins_over)).item())
-        print('low bins: ', torch.mean(torch.FloatTensor(bins_under)).item())
+        print('high bins counts sum: ', torch.sum(counts_high).item())
+        print('low bins counts sum: ', torch.sum(counts_low).item())
+        print('high bins: ', torch.mean(torch.FloatTensor(high_bins)).item())
+        print('low bins: ', torch.mean(torch.FloatTensor(low_bins)).item())
 
         return per_class_sce_high, per_class_sce_low, classes_acc
 
