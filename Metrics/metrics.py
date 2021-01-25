@@ -183,6 +183,7 @@ class ECELoss(nn.Module):
             if prop_in_bin.item() > 0:
                 accuracy_in_bin = accuracies[in_bin].float().mean()
                 avg_confidence_in_bin = confidences[in_bin].mean()
+                print(str(bin_lower) + ': ' + str((avg_confidence_in_bin - accuracy_in_bin) * prop_in_bin))
                 ece += torch.abs(avg_confidence_in_bin - accuracy_in_bin) * prop_in_bin
 
         return ece
