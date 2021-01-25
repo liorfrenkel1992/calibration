@@ -374,6 +374,7 @@ class binsECELoss(nn.Module):
         bin_boundaries = torch.linspace(0, 1, n_bins + 1)
         self.bin_lowers = bin_boundaries[:-1]
         self.bin_uppers = bin_boundaries[1:]
+        self.low_high_bin = low_high_bin
 
     def forward(self, logits, labels):
         num_classes = int((torch.max(labels) + 1).item())
@@ -402,7 +403,7 @@ class binsECELoss(nn.Module):
                 if prop_in_bin.item() > 0:
                     accuracy_in_bin = labels_in_class[in_bin].float().mean()
                     avg_confidence_in_bin = class_confidences[in_bin].mean()
-                    if bin_lower > low_high_bin:
+                    if bin_lower > self.low_high_bin:
                         high_bins.append(bin_lower)
                         counts_high[i] += 1 
                         class_sce_high += torch.abs(avg_confidence_in_bin - accuracy_in_bin) * prop_in_bin
