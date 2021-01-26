@@ -172,7 +172,7 @@ def temp_acc_plot(acc, temp, single_temp, save_plots_loc, dataset, model, traine
     plt.xticks(fontsize=10)
     plt.ylabel('Temperature', fontsize=10)
     plt.yticks(fontsize=10)
-    plt.legend()
+    plt.legend(fontsize=10)
     if const_temp:
         plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'temp_acc_after_scaling_{}_{}_{}_const_temp.pdf'.format(dataset, model, trained_loss)), dpi=40)
     else:
