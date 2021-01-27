@@ -196,7 +196,7 @@ def diff_ece_plot(acc, csece1, csece2, save_plots_loc, dataset, model, trained_l
         
 def bins_over_conf_plot(bins, diff, save_plots_loc, dataset, model, trained_loss, scaling_related='before'):
     plt.figure()
-    plt.plot(bins, diff.cpu())
+    plt.plot(bins, diff)
     plt.xlabel('bins', fontsize=10)
     plt.xticks(fontsize=10)
     plt.ylabel('confidence - accuracy', fontsize=10)
