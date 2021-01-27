@@ -27,7 +27,7 @@ def evaluate_model(model, weights_file, x_test, y_test, bins = 15, verbose = Tru
     """
     
     # Change last activation to linear (instead of softmax)
-    last_layer = model.layers.pop()
+    last_layer = model._layers.pop()
     last_layer.activation = keras.activations.linear
     i = model.input
     o = last_layer(model.layers[-1].output)
