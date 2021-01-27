@@ -255,7 +255,7 @@ if __name__ == "__main__":
         # ECE vs. accuracy per class
         ece_acc_plot(p_acc, p_csece, save_plots_loc, dataset, args.model, trained_loss, acc_check=acc_check, scaling_related='before')
         # Difference between calibration and accuracy (over-confience) over bins
-        bins_over_conf_plot(bins, over_conf, save_plots_loc, dataset, model, trained_loss, scaling_related='before')
+        bins_over_conf_plot(bins, over_conf, save_plots_loc, dataset, args.model, trained_loss, scaling_related='before')
     
     # Printing the required evaluation metrics
     if args.log:
