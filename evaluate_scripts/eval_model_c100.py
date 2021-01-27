@@ -29,8 +29,8 @@ epochs             = 200
 iterations         = 45000 // batch_size
 weight_decay       = 0.0001
 seed = 333
-weights_file_10 = "/mnt/dsi_vol1/users/frenkel2/data/calibration/trained_models/spline/cifar100/resnet_110_45k_c100.h5"
-weights_file_100 = "/mnt/dsi_vol1/users/frenkel2/data/calibration/trained_models/spline/cifar10/resnet_110_45k_c10.h5"
+weights_file_100 = "/mnt/dsi_vol1/users/frenkel2/data/calibration/trained_models/spline/cifar100/resnet_110_45k_c100.h5"
+weights_file_10 = "/mnt/dsi_vol1/users/frenkel2/data/calibration/trained_models/spline/cifar10/resnet_110_45k_c10.h5"
 
 def scheduler(epoch):
     if epoch < 80:
