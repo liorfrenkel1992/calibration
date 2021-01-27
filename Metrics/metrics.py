@@ -455,7 +455,7 @@ class diffECELoss(nn.Module):
             if prop_in_bin.item() > 0:
                 accuracy_in_bin = accuracies[in_bin].float().mean()
                 avg_confidence_in_bin = confidences[in_bin].mean()
-                bin_over_confidence.append((avg_confidence_in_bin - accuracy_in_bin) * prop_in_bin).item())
+                bin_over_confidence.append(((avg_confidence_in_bin - accuracy_in_bin) * prop_in_bin).item())
                 bins.append(bin_lower.item())
                 ece += torch.abs(avg_confidence_in_bin - accuracy_in_bin) * prop_in_bin
 
