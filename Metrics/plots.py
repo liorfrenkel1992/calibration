@@ -194,7 +194,7 @@ def diff_ece_plot(acc, csece1, csece2, save_plots_loc, dataset, model, trained_l
     else:
         plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'diff_{}_ece_acc_after_scaling_{}_{}_{}.pdf'.format(scaling_type, dataset, model, trained_loss)), dpi=40)
         
-def bins_over_confidence(bins, diff, save_plots_loc, dataset, model, trained_loss, scaling_related='before'):
+def bins_over_conf_plot(bins, diff, save_plots_loc, dataset, model, trained_loss, scaling_related='before'):
     plt.figure()
     plt.plt(bins, diff.cpu())
     plt.xlabel('bins', fontsize=10)
