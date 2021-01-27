@@ -22,8 +22,8 @@ from Net.densenet import densenet121
 
 # Import metrics to compute
 from Metrics.metrics import test_classification_net_logits
-from Metrics.metrics import ECELoss, AdaptiveECELoss, ClasswiseECELoss, ClassECELoss, posnegECELoss, binsECELoss
-from Metrics.plots import reliability_plot, pos_neg_ece_plot, ece_acc_plot, ece_iters_plot, temp_acc_plot, diff_ece_plot
+from Metrics.metrics import ECELoss, AdaptiveECELoss, ClasswiseECELoss, ClassECELoss, posnegECELoss, binsECELoss, diffECELoss
+from Metrics.plots import reliability_plot, pos_neg_ece_plot, ece_acc_plot, ece_iters_plot, temp_acc_plot, diff_ece_plot, bins_over_conf_plot
 
 # Import temperature scaling and NLL utilities
 from temperature_scaling import ModelWithTemperature
@@ -225,6 +225,7 @@ if __name__ == "__main__":
     csece_criterion = ClassECELoss().cuda()
     posneg_csece_criterion = posnegECELoss().cuda()
     bins_csece_criterion = binsECELoss().cuda()
+    diff_ece_criterion = diffECELoss().cuda()
 
     logits, labels = get_logits_labels(test_loader, net)
     conf_matrix, p_accuracy, _, predictions, confidences = test_classification_net_logits(logits, labels)
@@ -239,6 +240,8 @@ if __name__ == "__main__":
         p_csece_high, p_csece_low, _ = bins_csece_criterion(logits, labels)
         p_csece_pos, p_csece_neg, p_acc = posneg_csece_criterion(logits, labels)
     p_nll = nll_criterion(logits, labels).item()
+    _, over_conf, bins = diff_ece_criterion(logits, labels)
+    
 
     res_str = '{:s}&{:.4f}&{:.4f}&{:.4f}&{:.4f}&{:.4f}'.format(saved_model_name,  1-p_accuracy,  p_nll,  p_ece,  p_adaece, p_cece)
 
@@ -251,6 +254,8 @@ if __name__ == "__main__":
             pos_neg_ece_plot(p_acc, p_csece_high, p_csece_low, save_plots_loc, dataset, args.model, trained_loss, acc_check=acc_check, scaling_related='before_bins')
         # ECE vs. accuracy per class
         ece_acc_plot(p_acc, p_csece, save_plots_loc, dataset, args.model, trained_loss, acc_check=acc_check, scaling_related='before')
+        # Difference between calibration and accuracy (over-confience) over bins
+        bins_over_conf_plot(bins, over_conf, save_plots_loc, dataset, model, trained_loss, scaling_related='before')
     
     # Printing the required evaluation metrics
     if args.log:
