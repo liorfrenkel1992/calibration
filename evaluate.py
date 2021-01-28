@@ -48,12 +48,7 @@ models = {
     'resnet50_ti': resnet50_ti,
     'resnet110': resnet110,
     'wide_resnet': wide_resnet_cifar,
-    'densenet121': densenet121,
-    'resnet110_sd': resnet110_sd,
-    'densenet40': densenet40,
-    'wide_resnet32': wide_resnet32,
-    'lenet5': lenet5,
-    'densenet161': densenet161
+    'densenet121': densenet121
 }
 
 
