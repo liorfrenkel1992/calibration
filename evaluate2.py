@@ -28,6 +28,8 @@ from Metrics.plots import reliability_plot, pos_neg_ece_plot, ece_acc_plot, ece_
 # Import temperature scaling and NLL utilities
 from temperature_scaling import ModelWithTemperature
 
+# Import unpickling logits and labels
+from evaluate_scripts.unpickle_probs import unpickle_probs
 
 # Dataset params
 dataset_num_classes = {
@@ -70,6 +72,8 @@ def parseArgs():
     test_batch_size = 128
     cross_validation_error = 'ece'
     trained_loss = 'cross_entropy'
+    logits_path = '/mnt/dsi_vol1/users/frenkel2/data/calibration/trained_models/spline/logits/'
+    logits_file = 'probs_resnet110_c10_logits.p'
 
     parser = argparse.ArgumentParser(
         description="Evaluating a single model on calibration metrics.",
@@ -123,37 +127,14 @@ def parseArgs():
     parser.add_argument("--loss", type=str, default=trained_loss,
                         dest="trained_loss",
                         help='Trained loss(cross_entropy/focal_loss/focal_loss_adaptive/mmce/mmce_weighted/brier_score)')
+    parser.add_argument("--logits_path", type=str, default=logits_path,
+                        dest="logits_path",
+                        help='Path of saved logits')
+    parser.add_argument("--logits_file", type=str, default=logits_file,
+                        dest="logits_file",
+                        help='File of saved logits')
 
     return parser.parse_args()
-
-
-def get_logits_labels_const(data_loader, net, const_temp=False):
-    logits_list = []
-    labels_list = []
-    net.eval()
-    with torch.no_grad():
-        for data, label in data_loader:
-            data = data.cuda()
-            logits = net(data, const_temp=const_temp)
-            logits_list.append(logits)
-            labels_list.append(label)
-        logits = torch.cat(logits_list).cuda()
-        labels = torch.cat(labels_list).cuda()
-    return logits, labels
-
-def get_logits_labels(data_loader, net):
-    logits_list = []
-    labels_list = []
-    net.eval()
-    with torch.no_grad():
-        for data, label in data_loader:
-            data = data.cuda()
-            logits = net(data)
-            logits_list.append(logits)
-            labels_list.append(label)
-        logits = torch.cat(logits_list).cuda()
-        labels = torch.cat(labels_list).cuda()
-    return logits, labels
 
 
 if __name__ == "__main__":
@@ -189,39 +170,13 @@ if __name__ == "__main__":
     font_size = 10
     trained_loss = args.trained_loss
     acc_check = args.acc_check
+    logits_file =  args.logits_file
+    logits_path = args.logits_path
 
     # Taking input for the dataset
     num_classes = dataset_num_classes[dataset]
-    if (args.dataset == 'tiny_imagenet'):
-        val_loader = dataset_loader[args.dataset].get_data_loader(
-            root=args.dataset_root,
-            split='val',
-            batch_size=args.test_batch_size,
-            pin_memory=args.gpu)
-
-        test_loader = dataset_loader[args.dataset].get_data_loader(
-            root=args.dataset_root,
-            split='val',
-            batch_size=args.test_batch_size,
-            pin_memory=args.gpu)
-    else:
-         _, val_loader = dataset_loader[args.dataset].get_train_valid_loader(
-            batch_size=args.train_batch_size,
-            augment=args.data_aug,
-            random_seed=1,
-            pin_memory=args.gpu)
-
-         test_loader = dataset_loader[args.dataset].get_test_loader(
-            batch_size=args.test_batch_size,
-            pin_memory=args.gpu)
 
     model = models[model_name]
-
-    net = model(num_classes=num_classes, temp=1.0)
-    net.cuda()
-    net = torch.nn.DataParallel(net, device_ids=range(torch.cuda.device_count()))
-    cudnn.benchmark = True
-    net.load_state_dict(torch.load(args.save_loc + args.saved_model_name), strict=False)
 
     nll_criterion = nn.CrossEntropyLoss().cuda()
     ece_criterion = ECELoss().cuda()
@@ -231,48 +186,15 @@ if __name__ == "__main__":
     posneg_csece_criterion = posnegECELoss().cuda()
     bins_csece_criterion = binsECELoss().cuda()
     diff_ece_criterion = diffECELoss().cuda()
-
-    logits, labels = get_logits_labels(test_loader, net)
-    conf_matrix, p_accuracy, _, predictions, confidences = test_classification_net_logits(logits, labels)
     
-    reliability_plot(confidences, predictions, labels, save_plots_loc, dataset, args.model, trained_loss, num_bins=num_bins, scaling_related='before', save=True)
+    file = logits_path + logits_file
+    (logits_val, labels_val), (logits_test, labels_test) = unpickle_probs(file)
 
-    p_ece = ece_criterion(logits, labels).item()
-    p_adaece = adaece_criterion(logits, labels).item()
-    p_cece = cece_criterion(logits, labels).item()
-    p_csece, p_acc = csece_criterion(logits, labels)
-    if pos_neg_ece:
-        p_csece_high, p_csece_low, _ = bins_csece_criterion(logits, labels)
-        p_csece_pos, p_csece_neg, p_acc = posneg_csece_criterion(logits, labels)
-    p_nll = nll_criterion(logits, labels).item()
-    _, over_conf, bins = diff_ece_criterion(logits, labels)
-    
-
-    res_str = '{:s}&{:.4f}&{:.4f}&{:.4f}&{:.4f}&{:.4f}'.format(saved_model_name,  1-p_accuracy,  p_nll,  p_ece,  p_adaece, p_cece)
-
-    
-    if create_plots:
-        if pos_neg_ece:
-            # pos and neg ECE vs. accuracy per class
-            pos_neg_ece_plot(p_acc, p_csece_pos, p_csece_neg, save_plots_loc, dataset, args.model, trained_loss, acc_check=acc_check, scaling_related='before')
-            # high and low bins ECE vs. accuracy per class
-            pos_neg_ece_plot(p_acc, p_csece_high, p_csece_low, save_plots_loc, dataset, args.model, trained_loss, acc_check=acc_check, scaling_related='before_bins')
-        # ECE vs. accuracy per class
-        ece_acc_plot(p_acc, p_csece, save_plots_loc, dataset, args.model, trained_loss, acc_check=acc_check, scaling_related='before')
-        # Difference between calibration and accuracy (over-confience) over bins
-        bins_over_conf_plot(bins, over_conf, save_plots_loc, dataset, args.model, trained_loss, scaling_related='before')
+    p_ece = ece_criterion(logits_test, labels_test).item()
     
     # Printing the required evaluation metrics
     if args.log:
-        print (conf_matrix)
-        print ('Test error: ' + str((1 - p_accuracy)))
-        print ('Test NLL: ' + str(p_nll))
         print ('ECE: ' + str(p_ece))
-        print ('AdaECE: ' + str(p_adaece))
-        print ('Classwise ECE: ' + str(p_cece))
-        print ('Classes ECE: ' + str(p_csece))
-        print ('Classes accuracies: ' + str(p_acc))
-
 
     scaled_model = ModelWithTemperature(net, args.log, const_temp=const_temp)
     scaled_model.set_temperature(val_loader, temp_opt_iters, cross_validate=cross_validation_error, init_temp=init_temp, acc_check=acc_check)
