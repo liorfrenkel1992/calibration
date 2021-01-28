@@ -238,9 +238,8 @@ def class_temperature_scale2(self, logits, csece_temperature):
     # Expand temperature to match the size of logits
     return logits / csece_temperature
         
-def set_temperature2(self,
-                     logits, labels, iters=1,
-                     cross_validate='ece', init_temp=2.5, acc_check=False, const_temp=False, log=True):
+def set_temperature2(logits, labels, iters=1, cross_validate='ece',
+                     init_temp=2.5, acc_check=False, const_temp=False, log=True):
     """
     Tune the tempearature of the model (using the validation set) with cross-validation on ECE or NLL
     """
