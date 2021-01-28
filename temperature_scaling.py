@@ -223,3 +223,154 @@ class ModelWithTemperature(nn.Module):
             return self.temperature
         else:
             return self.temperature, self.csece_temperature
+        
+def temperature_scale2(self, logits, temperature):
+    """
+    Perform temperature scaling on logits
+    """
+    # Expand temperature to match the size of logits
+    return logits / temperature
+
+def class_temperature_scale2(self, logits, csece_temperature):
+    """
+    Perform temperature scaling on logits
+    """
+    # Expand temperature to match the size of logits
+    return logits / csece_temperature
+        
+def set_temperature2(self,
+                     logits, labels, iters=1,
+                     cross_validate='ece', init_temp=2.5, acc_check=False, const_temp=False, log=True):
+    """
+    Tune the tempearature of the model (using the validation set) with cross-validation on ECE or NLL
+    """
+    if const_temp:
+        nll_criterion = nn.CrossEntropyLoss().cuda()
+        ece_criterion = ECELoss().cuda()
+
+        # Calculate NLL and ECE before temperature scaling
+        before_temperature_nll = nll_criterion(logits, labels).item()
+        before_temperature_ece = ece_criterion(logits, labels).item()
+        if log:
+            print('Before temperature - NLL: %.3f, ECE: %.3f' % (before_temperature_nll, before_temperature_ece))
+
+        nll_val = 10 ** 7
+        ece_val = 10 ** 7
+        T_opt_nll = 1.0
+        T_opt_ece = 1.0
+        T = 0.1
+        for i in range(100):
+            temperature = T
+            after_temperature_nll = nll_criterion(temperature_scale2(logits, temperature), labels).item()
+            after_temperature_ece = ece_criterion(temperature_scale2(logits, temperature), labels).item()
+            if nll_val > after_temperature_nll:
+                T_opt_nll = T
+                nll_val = after_temperature_nll
+
+            if ece_val > after_temperature_ece:
+                T_opt_ece = T
+                ece_val = after_temperature_ece
+            T += 0.1
+
+        if cross_validate == 'ece':
+            temperature = T_opt_ece
+        else:
+            temperature = T_opt_nll
+
+        # Calculate NLL and ECE after temperature scaling
+        after_temperature_nll = nll_criterion(temperature_scale2(logits, temperature), labels).item()
+        after_temperature_ece = ece_criterion(temperature_scale2(logits, temperature), labels).item()
+        if log:
+            print('Optimal temperature: %.3f' % self.temperature)
+            print('After temperature - NLL: %.3f, ECE: %.3f' % (after_temperature_nll, after_temperature_ece))
+
+    else:
+        ece_list = []
+        nll_criterion = nn.CrossEntropyLoss().cuda()
+        ece_criterion = ECELoss().cuda()
+        csece_criterion = ClassECELoss().cuda()
+
+        # Calculate NLL and ECE before temperature scaling
+        before_temperature_nll = nll_criterion(logits, labels).item()
+        before_temperature_ece = ece_criterion(logits, labels).item()
+        before_temperature_csece, _ = csece_criterion(logits, labels)
+        if acc_check:
+            _, accuracy, _, _, _ = test_classification_net_logits(logits, labels)
+
+        if log:
+            print('Before temperature - NLL: {0:.3f}, ECE: {1:.3f}, classECE: {2}'.format(before_temperature_nll, before_temperature_ece, before_temperature_csece))
+
+        T_opt_nll = 1.0
+        T_opt_ece = 1.0
+        T_opt_csece = init_temp*torch.ones(logits.size()[1]).cuda()
+        T_csece = init_temp*torch.ones(logits.size()[1]).cuda()
+        csece_temperature = T_csece
+        ece_list.append(ece_criterion(class_temperature_scale2(logits, csece_temperature), labels).item())
+        if acc_check:
+            _, temp_accuracy, _, _, _ = test_classification_net_logits(class_temperature_scale2(logits, csece_temperature), labels)
+            if temp_accuracy >= accuracy:
+                accuracy = temp_accuracy
+
+        nll_val = 10 ** 7
+        ece_val = 10 ** 7
+        csece_val = 10 ** 7
+
+        for iter in range(iters):
+            for label in range(logits.size()[1]):
+                T = 0.1
+                """
+                nll_val = 10 ** 7
+                ece_val = 10 ** 7
+                csece_val = 10 ** 7
+                """
+                for i in range(100):
+                    T_csece[label] = T
+                    csece_temperature = T_csece
+                    temperature = T
+                    after_temperature_nll = nll_criterion(temperature_scale2(logits, temperature), labels).item()
+                    after_temperature_ece = ece_criterion(class_temperature_scale2(logits, csece_temperature), labels).item()
+                    after_temperature_ece_reg = ece_criterion(temperature_scale2(logits, temperature), labels).item()
+                    if acc_check:
+                        _, temp_accuracy, _, _, _ = test_classification_net_logits(class_temperature_scale2(logits, csece_temperature), labels)
+
+                    if nll_val > after_temperature_nll:
+                        T_opt_nll = T
+                        nll_val = after_temperature_nll
+
+                    if ece_val > after_temperature_ece_reg:
+                        T_opt_ece = T
+                        ece_val = after_temperature_ece_reg
+
+                    if acc_check:
+                        if csece_val > after_temperature_ece and temp_accuracy >= accuracy:
+                            T_opt_csece[label] = T
+                            csece_val = after_temperature_ece
+                            accuracy = temp_accuracy
+                    else:
+                        if csece_val > after_temperature_ece:
+                            T_opt_csece[label] = T
+                            csece_val = after_temperature_ece
+                    T += 0.1
+                T_csece[label] = T_opt_csece[label]
+            csece_temperature = T_opt_csece
+            ece_list.append(ece_criterion(class_temperature_scale2(logits, csece_temperature), labels).item())
+
+        if cross_validate == 'ece':
+            temperature = T_opt_ece
+        else:
+            temperature = T_opt_nll
+        csece_temperature = T_opt_csece
+
+        # Calculate NLL and ECE after temperature scaling
+        after_temperature_nll = nll_criterion(temperature_scale2(logits, temperature), labels).item()
+        after_temperature_ece = ece_criterion(temperature_scale2(logits, temperature), labels).item()
+        after_temperature_csece, _ = csece_criterion(class_temperature_scale2(logits, csece_temperature), labels)
+        ece = ece_criterion(temperature_scale2(logits, temperature), labels).item()
+        if log:
+            print('Optimal temperature: %.3f' % self.temperature)
+            print('After temperature - NLL: {0:.3f}, ECE: {1:.3f}, classECE: {2}'.format(after_temperature_nll, after_temperature_ece, after_temperature_csece))
+
+    if const_temp:
+        return temperature
+    else:
+        return temperature, csece_temperature
