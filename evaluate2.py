@@ -118,9 +118,6 @@ if __name__ == "__main__":
     const_temp = args.const_temp
     save_plots_loc = args.save_plots_loc
     init_temp = args.init_temp
-    pos_neg_ece = args.pos_neg_ece
-    uncalibrate_check = args.uncalibrated_check
-    font_size = 10
     trained_loss = args.trained_loss
     acc_check = args.acc_check
     logits_file =  args.logits_file
