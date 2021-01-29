@@ -134,7 +134,7 @@ if __name__ == "__main__":
     logits_test = softmax(logits_test)
     preds = np.argmax(logits_test, axis=1)
     confs = np.max(logits_test, axis=1)
-    p_ece= ECE(confs, preds, y_true, bin_size = 1/num_bins) 
+    p_ece= ECE(confs, preds, labels_test, bin_size = 1/num_bins) 
     
     """
     logits_val = torch.from_numpy(logits_val)
