@@ -8,7 +8,7 @@ from torch.nn import functional as F
 
 from Metrics.metrics import test_classification_net_logits
 from Metrics.metrics import ECELoss, ClassECELoss, posnegECELoss
-from Metrics.metrics2 import ECE, softmax
+from Metrics.metrics2 import ECE, softmax, test_classification_net_logits2
 
 
 class ModelWithTemperature(nn.Module):
@@ -301,7 +301,7 @@ def set_temperature2(logits, labels, iters=1, cross_validate='ece',
         confs = np.max(softmaxs, axis=1)
         before_temperature_ece = ECE(confs, preds, labels, bin_size = 1/num_bins)
         if acc_check:
-            _, accuracy, _, _, _ = test_classification_net_logits(logits, labels)
+            _, accuracy, _, _, _ = test_classification_net_logits2(logits, labels)
 
         if log:
             print('Before temperature - ECE: {1:.3f}'.format(before_temperature_ece))
@@ -313,7 +313,7 @@ def set_temperature2(logits, labels, iters=1, cross_validate='ece',
         csece_temperature = T_csece
         ece_list.append(ECE(softmax(class_temperature_scale2(logits, csece_temperature)), labels, bin_size = 1/num_bins).item())
         if acc_check:
-            _, temp_accuracy, _, _, _ = test_classification_net_logits(class_temperature_scale2(logits, csece_temperature), labels)
+            _, temp_accuracy, _, _, _ = test_classification_net_logits2(class_temperature_scale2(logits, csece_temperature), labels)
             if temp_accuracy >= accuracy:
                 accuracy = temp_accuracy
 
@@ -336,7 +336,7 @@ def set_temperature2(logits, labels, iters=1, cross_validate='ece',
                     after_temperature_ece = ECE(softmax(class_temperature_scale2(logits, csece_temperature)), labels, bin_size = 1/num_bins).item()
                     after_temperature_ece_reg = ECE(softmax(temperature_scale2(logits, temperature)), labels, bin_size = 1/num_bins).item()
                     if acc_check:
-                        _, temp_accuracy, _, _, _ = test_classification_net_logits(class_temperature_scale2(logits, csece_temperature), labels)
+                        _, temp_accuracy, _, _, _ = test_classification_net_logits2(class_temperature_scale2(logits, csece_temperature), labels)
 
                     if nll_val > after_temperature_nll:
                         T_opt_nll = T
