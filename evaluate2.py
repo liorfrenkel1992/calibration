@@ -156,7 +156,10 @@ if __name__ == "__main__":
         temperature, csece_temperature = set_temperature2(logits_val, labels_val, temp_opt_iters, cross_validate=cross_validation_error,
                                                           init_temp=init_temp, acc_check=acc_check, const_temp=const_temp, log=args.log, num_bins=25)
     
-    ece = ECE(softmax(class_temperature_scale2(logits_test, csece_temperature)), labels_test, bin_size = 1/num_bins)
+    softmaxs = softmax(class_temperature_scale2(logits_test, csece_temperature))
+    preds = np.argmax(softmaxs, axis=1)
+    confs = np.max(softmaxs, axis=1)
+    ece = ECE(confs, preds, labels_test, bin_size = 1/num_bins)
             
     if args.log:
         print ('Optimal temperature: ' + str(temperature))
