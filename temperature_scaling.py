@@ -325,7 +325,7 @@ def set_temperature2(logits, labels, iters=1, cross_validate='ece',
         csece_val = 10 ** 7
 
         for iter in range(iters):
-            for label in range(logits.size()[1]):
+            for label in range(logits.shape[1]):
                 T = 0.1
                 """
                 nll_val = 10 ** 7
