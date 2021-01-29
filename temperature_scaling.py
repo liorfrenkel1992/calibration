@@ -8,6 +8,7 @@ from torch.nn import functional as F
 
 from Metrics.metrics import test_classification_net_logits
 from Metrics.metrics import ECELoss, ClassECELoss, posnegECELoss
+from Metrics.metrics import ECE, softmax
 
 
 class ModelWithTemperature(nn.Module):
@@ -224,14 +225,14 @@ class ModelWithTemperature(nn.Module):
         else:
             return self.temperature, self.csece_temperature
         
-def temperature_scale2(self, logits, temperature):
+def temperature_scale2(logits, temperature):
     """
     Perform temperature scaling on logits
     """
     # Expand temperature to match the size of logits
     return logits / temperature
 
-def class_temperature_scale2(self, logits, csece_temperature):
+def class_temperature_scale2(logits, csece_temperature):
     """
     Perform temperature scaling on logits
     """
@@ -239,7 +240,7 @@ def class_temperature_scale2(self, logits, csece_temperature):
     return logits / csece_temperature
         
 def set_temperature2(logits, labels, iters=1, cross_validate='ece',
-                     init_temp=2.5, acc_check=False, const_temp=False, log=True):
+                     init_temp=2.5, acc_check=False, const_temp=False, log=True, num_bins=25):
     """
     Tune the tempearature of the model (using the validation set) with cross-validation on ECE or NLL
     """
@@ -285,6 +286,7 @@ def set_temperature2(logits, labels, iters=1, cross_validate='ece',
 
     else:
         ece_list = []
+        """
         nll_criterion = nn.CrossEntropyLoss().cuda()
         ece_criterion = ECELoss().cuda()
         csece_criterion = ClassECELoss().cuda()
@@ -293,18 +295,23 @@ def set_temperature2(logits, labels, iters=1, cross_validate='ece',
         before_temperature_nll = nll_criterion(logits, labels).item()
         before_temperature_ece = ece_criterion(logits, labels).item()
         before_temperature_csece, _ = csece_criterion(logits, labels)
+        """
+        softmaxs = softmax(logits)
+        preds = np.argmax(softmaxs, axis=1)
+        confs = np.max(softmaxs, axis=1)
+        before_temperature_ece = ECE(confs, preds, labels, bin_size = 1/num_bins)
         if acc_check:
             _, accuracy, _, _, _ = test_classification_net_logits(logits, labels)
 
         if log:
-            print('Before temperature - NLL: {0:.3f}, ECE: {1:.3f}, classECE: {2}'.format(before_temperature_nll, before_temperature_ece, before_temperature_csece))
+            print('Before temperature - ECE: {1:.3f}'.format(before_temperature_ece))
 
         T_opt_nll = 1.0
         T_opt_ece = 1.0
-        T_opt_csece = init_temp*torch.ones(logits.size()[1]).cuda()
-        T_csece = init_temp*torch.ones(logits.size()[1]).cuda()
+        T_opt_csece = init_temp*np.ones(logits.shape[1]).cuda()
+        T_csece = init_temp*np.ones(logits.shape[1]).cuda()
         csece_temperature = T_csece
-        ece_list.append(ece_criterion(class_temperature_scale2(logits, csece_temperature), labels).item())
+        ece_list.append(ECE(softmax(class_temperature_scale2(logits, csece_temperature)), labels, bin_size = 1/num_bins).item())
         if acc_check:
             _, temp_accuracy, _, _, _ = test_classification_net_logits(class_temperature_scale2(logits, csece_temperature), labels)
             if temp_accuracy >= accuracy:
@@ -326,9 +333,8 @@ def set_temperature2(logits, labels, iters=1, cross_validate='ece',
                     T_csece[label] = T
                     csece_temperature = T_csece
                     temperature = T
-                    after_temperature_nll = nll_criterion(temperature_scale2(logits, temperature), labels).item()
-                    after_temperature_ece = ece_criterion(class_temperature_scale2(logits, csece_temperature), labels).item()
-                    after_temperature_ece_reg = ece_criterion(temperature_scale2(logits, temperature), labels).item()
+                    after_temperature_ece = ECE(softmax(class_temperature_scale2(logits, csece_temperature)), labels, bin_size = 1/num_bins).item()
+                    after_temperature_ece_reg = ECE(softmax(temperature_scale2(logits, temperature)), labels, bin_size = 1/num_bins).item()
                     if acc_check:
                         _, temp_accuracy, _, _, _ = test_classification_net_logits(class_temperature_scale2(logits, csece_temperature), labels)
 
@@ -352,22 +358,23 @@ def set_temperature2(logits, labels, iters=1, cross_validate='ece',
                     T += 0.1
                 T_csece[label] = T_opt_csece[label]
             csece_temperature = T_opt_csece
-            ece_list.append(ece_criterion(class_temperature_scale2(logits, csece_temperature), labels).item())
+            ece_list.append(ECE(softmax(class_temperature_scale2(logits, csece_temperature)), labels, bin_size = 1/num_bins).item())
 
         if cross_validate == 'ece':
             temperature = T_opt_ece
         else:
             temperature = T_opt_nll
         csece_temperature = T_opt_csece
-
+        """
         # Calculate NLL and ECE after temperature scaling
         after_temperature_nll = nll_criterion(temperature_scale2(logits, temperature), labels).item()
         after_temperature_ece = ece_criterion(temperature_scale2(logits, temperature), labels).item()
         after_temperature_csece, _ = csece_criterion(class_temperature_scale2(logits, csece_temperature), labels)
+        """
         ece = ece_criterion(temperature_scale2(logits, temperature), labels).item()
         if log:
-            print('Optimal temperature: %.3f' % self.temperature)
-            print('After temperature - NLL: {0:.3f}, ECE: {1:.3f}, classECE: {2}'.format(after_temperature_nll, after_temperature_ece, after_temperature_csece))
+            print('Optimal temperature: %.3f' % temperature)
+            print('After temperature - ECE: {1:.3f}'.format(ece))
 
     if const_temp:
         return temperature
