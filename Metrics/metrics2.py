@@ -1,3 +1,15 @@
+def softmax(x):
+    """
+    Compute softmax values for each sets of scores in x.
+    
+    Parameters:
+        x (numpy.ndarray): array containing m samples with n-dimensions (m,n)
+    Returns:
+        x_softmax (numpy.ndarray) softmaxed values for initial (m,n) array
+    """
+    e_x = np.exp(x - np.max(x))
+    return e_x / e_x.sum(axis=1, keepdims=1)
+
 def compute_acc_bin(conf_thresh_lower, conf_thresh_upper, conf, pred, true):
     """
     # Computes accuracy and average confidence for bin
