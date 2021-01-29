@@ -23,7 +23,7 @@ def compute_acc_bin(conf_thresh_lower, conf_thresh_upper, conf, pred, true):
         return accuracy, avg_conf, len_bin
   
 
-def ECE2(conf, pred, true, bin_size = 0.1):
+def ECE(conf, pred, true, bin_size = 0.1):
 
     """
     Expected Calibration Error
