@@ -320,7 +320,6 @@ def set_temperature2(logits, labels, iters=1, cross_validate='ece',
             if temp_accuracy >= accuracy:
                 accuracy = temp_accuracy
 
-        nll_val = 10 ** 7
         ece_val = 10 ** 7
         csece_val = 10 ** 7
 
@@ -349,10 +348,6 @@ def set_temperature2(logits, labels, iters=1, cross_validate='ece',
                     
                     if acc_check:
                         _, temp_accuracy, _, _, _ = test_classification_net_logits2(class_temperature_scale2(logits, csece_temperature), labels)
-
-                    if nll_val > after_temperature_nll:
-                        T_opt_nll = T
-                        nll_val = after_temperature_nll
 
                     if ece_val > after_temperature_ece_reg:
                         T_opt_ece = T
