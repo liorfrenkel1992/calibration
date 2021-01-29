@@ -73,8 +73,8 @@ def test_classification_net_logits2(logits, labels):
     predictions_list = []
     confidence_vals_list = []
 
-    softmax = softmax(logits)
-    confidence_vals, predictions = np.max(softmax, axis=1)
+    softmaxs = softmax(logits)
+    confidence_vals, predictions = np.max(softmaxs, axis=1)
     labels_list.extend(labels.tolist())
     predictions_list.extend(predictions.tolist())
     confidence_vals_list.extend(confidence_vals.tolist())
