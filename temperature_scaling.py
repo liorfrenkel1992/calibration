@@ -304,7 +304,7 @@ def set_temperature2(logits, labels, iters=1, cross_validate='ece',
             _, accuracy, _, _, _ = test_classification_net_logits2(logits, labels)
 
         if log:
-            print('Before temperature - ECE: {1:.3f}'.format(before_temperature_ece))
+            print('Before temperature - ECE: {0:.3f}'.format(before_temperature_ece))
 
         T_opt_nll = 1.0
         T_opt_ece = 1.0
@@ -374,7 +374,7 @@ def set_temperature2(logits, labels, iters=1, cross_validate='ece',
         ece = ece_criterion(temperature_scale2(logits, temperature), labels).item()
         if log:
             print('Optimal temperature: %.3f' % temperature)
-            print('After temperature - ECE: {1:.3f}'.format(ece))
+            print('After temperature - ECE: {0:.3f}'.format(ece))
 
     if const_temp:
         return temperature
