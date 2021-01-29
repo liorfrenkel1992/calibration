@@ -6,12 +6,14 @@ import argparse
 from torch import nn
 import matplotlib.pyplot as plt
 import torch.backends.cudnn as cudnn
+import numpy as np
 
 import matplotlib.pyplot as plt
 
 # Import metrics to compute
 from Metrics.metrics import test_classification_net_logits
 from Metrics.metrics import ECELoss
+from Metrics.metrics2 import ECE, softmax
 
 # Import temperature scaling and NLL utilities
 from temperature_scaling import set_temperature2, temperature_scale2, class_temperature_scale2
@@ -129,12 +131,19 @@ if __name__ == "__main__":
     file = logits_path + logits_file
     (logits_val, labels_val), (logits_test, labels_test) = unpickle_probs(file)
     
+    logits_test = softmax(logits_test)
+    preds = np.argmax(logits_test, axis=1)
+    confs = np.max(logits_test, axis=1)
+    p_ece= ECE(confs, preds, y_true, bin_size = 1/num_bins) 
+    
+    """
     logits_val = torch.from_numpy(logits_val)
     labels_val = torch.from_numpy(labels_val)
     logits_test = torch.from_numpy(logits_test)
     labels_test = torch.from_numpy(labels_test)
 
     p_ece = ece_criterion(logits_test, labels_test).item()
+    """
     
     # Printing the required evaluation metrics
     if args.log:
