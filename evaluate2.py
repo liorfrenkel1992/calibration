@@ -156,7 +156,7 @@ if __name__ == "__main__":
         temperature, csece_temperature = set_temperature2(logits_val, labels_val, temp_opt_iters, cross_validate=cross_validation_error,
                                                           init_temp=init_temp, acc_check=acc_check, const_temp=const_temp, log=args.log, num_bins=25)
     
-    ece = ECE(softmax(class_temperature_scale2(logits_test, csece_temperature)), labels, bin_size = 1/num_bins)
+    ece = ECE(softmax(class_temperature_scale2(logits_test, csece_temperature)), labels_test, bin_size = 1/num_bins)
             
     if args.log:
         print ('Optimal temperature: ' + str(temperature))
