@@ -311,7 +311,10 @@ def set_temperature2(logits, labels, iters=1, cross_validate='ece',
         T_opt_csece = init_temp*np.ones(logits.shape[1])
         T_csece = init_temp*np.ones(logits.shape[1])
         csece_temperature = T_csece
-        ece_list.append(ECE(softmax(class_temperature_scale2(logits, csece_temperature)), labels, bin_size = 1/num_bins))
+        softmaxs = softmax(class_temperature_scale2(logits, csece_temperature))
+        preds = np.argmax(softmaxs, axis=1)
+        confs = np.max(softmaxs, axis=1)
+        ece_list.append(ECE(confs, preds, labels, bin_size = 1/num_bins))
         if acc_check:
             _, temp_accuracy, _, _, _ = test_classification_net_logits2(class_temperature_scale2(logits, csece_temperature), labels)
             if temp_accuracy >= accuracy:
@@ -333,8 +336,17 @@ def set_temperature2(logits, labels, iters=1, cross_validate='ece',
                     T_csece[label] = T
                     csece_temperature = T_csece
                     temperature = T
-                    after_temperature_ece = ECE(softmax(class_temperature_scale2(logits, csece_temperature)), labels, bin_size = 1/num_bins)
-                    after_temperature_ece_reg = ECE(softmax(temperature_scale2(logits, temperature)), labels, bin_size = 1/num_bins)
+                    
+                    softmaxs = softmax(class_temperature_scale2(logits, csece_temperature))
+                    preds = np.argmax(softmaxs, axis=1)
+                    confs = np.max(softmaxs, axis=1)
+                    after_temperature_ece = ECE(confs, preds, labels, bin_size = 1/num_bins)
+                    
+                    softmaxs = softmax(temperature_scale2(logits, temperature))
+                    preds = np.argmax(softmaxs, axis=1)
+                    confs = np.max(softmaxs, axis=1)
+                    after_temperature_ece_reg = ECE(confs, preds, labels, bin_size = 1/num_bins)
+                    
                     if acc_check:
                         _, temp_accuracy, _, _, _ = test_classification_net_logits2(class_temperature_scale2(logits, csece_temperature), labels)
 
@@ -358,7 +370,10 @@ def set_temperature2(logits, labels, iters=1, cross_validate='ece',
                     T += 0.1
                 T_csece[label] = T_opt_csece[label]
             csece_temperature = T_opt_csece
-            ece_list.append(ECE(softmax(class_temperature_scale2(logits, csece_temperature)), labels, bin_size = 1/num_bins))
+            softmaxs = softmax(class_temperature_scale2(logits, csece_temperature))
+            preds = np.argmax(softmaxs, axis=1)
+            confs = np.max(softmaxs, axis=1)
+            ece_list.append(ECE(confs, preds, labels, bin_size = 1/num_bins))
 
         if cross_validate == 'ece':
             temperature = T_opt_ece
@@ -371,7 +386,10 @@ def set_temperature2(logits, labels, iters=1, cross_validate='ece',
         after_temperature_ece = ece_criterion(temperature_scale2(logits, temperature), labels).item()
         after_temperature_csece, _ = csece_criterion(class_temperature_scale2(logits, csece_temperature), labels)
         """
-        ece = ece_criterion(temperature_scale2(logits, temperature), labels)
+        softmaxs = softmax(temperature_scale2(logits, temperature))
+        preds = np.argmax(softmaxs, axis=1)
+        confs = np.max(softmaxs, axis=1)
+        ece = ECE(confs, preds, labels, bin_size = 1/num_bins)
         if log:
             print('Optimal temperature: %.3f' % temperature)
             print('After temperature - ECE: {0:.3f}'.format(ece))
