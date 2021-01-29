@@ -151,10 +151,10 @@ if __name__ == "__main__":
 
     if const_temp:
         temperature = set_temperature2(logits_val, labels_val, temp_opt_iters, cross_validate=cross_validation_error,
-                                       init_temp=init_temp, acc_check=acc_check, const_temp=const_temp, log=args.log)
+                                       init_temp=init_temp, acc_check=acc_check, const_temp=const_temp, log=args.log, num_bins=25)
     else:                              
         temperature, csece_temperature = set_temperature2(logits_val, labels_val, temp_opt_iters, cross_validate=cross_validation_error,
-                                                          init_temp=init_temp, acc_check=acc_check, const_temp=const_temp, log=args.log)
+                                                          init_temp=init_temp, acc_check=acc_check, const_temp=const_temp, log=args.log, num_bins=25)
     
     ece = ece_criterion(class_temperature_scale2(logits_test, csece_temperature), labels).item()
             
