@@ -131,9 +131,9 @@ if __name__ == "__main__":
     file = logits_path + logits_file
     (logits_val, labels_val), (logits_test, labels_test) = unpickle_probs(file)
     
-    logits_test = softmax(logits_test)
-    preds = np.argmax(logits_test, axis=1)
-    confs = np.max(logits_test, axis=1)
+    softmaxs = softmax(logits_test)
+    preds = np.argmax(softmaxs, axis=1)
+    confs = np.max(softmaxs, axis=1)
     p_ece= ECE(confs, preds, labels_test, bin_size = 1/num_bins) 
     
     """
