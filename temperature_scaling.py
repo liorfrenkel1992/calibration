@@ -8,7 +8,7 @@ from torch.nn import functional as F
 
 from Metrics.metrics import test_classification_net_logits
 from Metrics.metrics import ECELoss, ClassECELoss, posnegECELoss
-from Metrics.metrics import ECE, softmax
+from Metrics.metrics2 import ECE, softmax
 
 
 class ModelWithTemperature(nn.Module):
