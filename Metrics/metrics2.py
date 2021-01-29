@@ -1,5 +1,6 @@
 import numpy as np
 from sklearn.metrics import confusion_matrix
+from sklearn.metrics import accuracy_score
 
 def softmax(x):
     """
@@ -74,7 +75,8 @@ def test_classification_net_logits2(logits, labels):
     confidence_vals_list = []
 
     softmaxs = softmax(logits)
-    confidence_vals, predictions = np.max(softmaxs, axis=1)
+    confidence_vals = np.max(softmaxs, axis=1)
+    predictions = np.argmax(softmaxs, axis=1)
     labels_list.extend(labels.tolist())
     predictions_list.extend(predictions.tolist())
     confidence_vals_list.extend(confidence_vals.tolist())
