@@ -123,7 +123,7 @@ if __name__ == "__main__":
     logits_file =  args.logits_file
     logits_path = args.logits_path
 
-    ece_criterion = ECELoss(num_bins=25).cuda()
+    ece_criterion = ECELoss(n_bins=25).cuda()
     
     # Loading logits and labels
     file = logits_path + logits_file
