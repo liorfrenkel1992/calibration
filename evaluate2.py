@@ -162,5 +162,4 @@ if __name__ == "__main__":
     ece = ECE(confs, preds, labels_test, bin_size = 1/num_bins)
             
     if args.log:
-        print ('Optimal temperature: ' + str(temperature))
         print ('ECE (Class-based temp scaling): ' + str(ece))
