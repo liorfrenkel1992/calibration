@@ -1,4 +1,5 @@
 import numpy as np
+from sklearn.metrics import confusion_matrix
 
 def softmax(x):
     """
@@ -62,3 +63,21 @@ def ECE(conf, pred, true, bin_size = 0.1):
         ece += np.abs(acc-avg_conf)*len_bin/n  # Add weigthed difference to ECE
         
     return ece
+
+def test_classification_net_logits2(logits, labels):
+    '''
+    This function reports classification accuracy and confusion matrix given logits and labels
+    from a model.
+    '''
+    labels_list = []
+    predictions_list = []
+    confidence_vals_list = []
+
+    softmax = softmax(logits)
+    confidence_vals, predictions = np.max(softmax, axis=1)
+    labels_list.extend(labels.tolist())
+    predictions_list.extend(predictions.tolist())
+    confidence_vals_list.extend(confidence_vals.tolist())
+    accuracy = accuracy_score(labels_list, predictions_list)
+    return confusion_matrix(labels_list, predictions_list), accuracy, labels_list,\
+        predictions_list, confidence_vals_list
