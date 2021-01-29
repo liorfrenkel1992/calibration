@@ -128,6 +128,11 @@ if __name__ == "__main__":
     # Loading logits and labels
     file = logits_path + logits_file
     (logits_val, labels_val), (logits_test, labels_test) = unpickle_probs(file)
+    
+    logits_val = torch.from_numpy(logits_val)
+    labels_val = torch.from_numpy(labels_val)
+    logits_test = torch.from_numpy(logits_test)
+    labels_test = torch.from_numpy(labels_test)
 
     p_ece = ece_criterion(logits_test, labels_test).item()
     
