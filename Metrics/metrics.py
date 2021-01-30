@@ -171,8 +171,8 @@ class ECELoss(nn.Module):
         self.bin_uppers = bin_boundaries[1:]
 
     def forward(self, logits, labels):
-        softmaxes = F.softmax(logits, dim=1)
-        confidences, predictions = torch.max(softmaxes, 1)
+        #softmaxes = F.softmax(logits, dim=1)
+        confidences, predictions = torch.max(logits, 1)
         accuracies = predictions.eq(labels)
 
         ece = torch.zeros(1, device=logits.device)
