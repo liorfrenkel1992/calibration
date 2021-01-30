@@ -138,10 +138,10 @@ if __name__ == "__main__":
     p_ece= ECE(confs, preds, labels_test, bin_size = 1/num_bins) 
     """
     
-    logits_val = torch.from_numpy(logits_val)
-    labels_val = torch.squeeze(torch.from_numpy(labels_val), -1)
-    logits_test = torch.from_numpy(logits_test)
-    labels_test = torch.squeeze(torch.from_numpy(labels_test), -1)
+    logits_val = torch.from_numpy(logits_val).cuda()
+    labels_val = torch.squeeze(torch.from_numpy(labels_val), -1).cuda()
+    logits_test = torch.from_numpy(logits_test).cuda()
+    labels_test = torch.squeeze(torch.from_numpy(labels_test), -1).cuda()
 
     p_ece = ece_criterion(logits_test, labels_test).item()
     
