@@ -131,19 +131,19 @@ if __name__ == "__main__":
     file = logits_path + logits_file
     (logits_val, labels_val), (logits_test, labels_test) = unpickle_probs(file)
     
-    
+    """
     softmaxs = softmax(logits_test)
     preds = np.argmax(softmaxs, axis=1)
     confs = np.max(softmaxs, axis=1)
     p_ece= ECE(confs, preds, labels_test, bin_size = 1/num_bins) 
+    """
     
-    
-    logits_val = torch.squeeze(torch.from_numpy(logits_val), -1)
+    logits_val = torch.from_numpy(logits_val)
     labels_val = torch.squeeze(torch.from_numpy(labels_val), -1)
-    logits_test = torch.squeeze(torch.from_numpy(logits_test), -1)
+    logits_test = torch.from_numpy(logits_test)
     labels_test = torch.squeeze(torch.from_numpy(labels_test), -1)
 
-    p_ece2 = ece_criterion(logits_test, labels_test).item()
+    p_ece = ece_criterion(logits_test, labels_test).item()
     
     # Printing the required evaluation metrics
     if args.log:
@@ -155,11 +155,13 @@ if __name__ == "__main__":
     else:                              
         csece_temperature = set_temperature2(logits_val, labels_val, temp_opt_iters, cross_validate=cross_validation_error,
                                                           init_temp=init_temp, acc_check=acc_check, const_temp=const_temp, log=args.log, num_bins=25)
-    
+    """
     softmaxs = softmax(class_temperature_scale2(logits_test, csece_temperature))
     preds = np.argmax(softmaxs, axis=1)
     confs = np.max(softmaxs, axis=1)
     ece = ECE(confs, preds, labels_test, bin_size = 1/num_bins)
-            
+    """
+    ece = ece_criterion(class_temperature_scale2(logits_test, csece_temperature), labels_test).item()
+    
     if args.log:
         print ('ECE (Class-based temp scaling): ' + str(ece))
