@@ -131,19 +131,19 @@ if __name__ == "__main__":
     file = logits_path + logits_file
     (logits_val, labels_val), (logits_test, labels_test) = unpickle_probs(file)
     
-    """
+    
     softmaxs = softmax(logits_test)
     preds = np.argmax(softmaxs, axis=1)
     confs = np.max(softmaxs, axis=1)
     p_ece= ECE(confs, preds, labels_test, bin_size = 1/num_bins) 
-    """
+    
     
     logits_val = torch.from_numpy(logits_val)
     labels_val = torch.from_numpy(labels_val)
     logits_test = torch.from_numpy(logits_test)
     labels_test = torch.from_numpy(labels_test)
 
-    p_ece = ece_criterion(logits_test, labels_test).item()
+    p_ece2 = ece_criterion(logits_test, labels_test).item()
     
     # Printing the required evaluation metrics
     if args.log:
