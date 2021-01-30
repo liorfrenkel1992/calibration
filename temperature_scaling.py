@@ -309,7 +309,7 @@ def set_temperature2(logits, labels, iters=1, cross_validate='ece',
         init_temp = T_opt_ece
 
         # Calculate NLL and ECE after temperature scaling
-        after_temperature_ece = ece_criterion(temperature_scale2(logits, temperature), labels).item()
+        after_temperature_ece = ece_criterion(temperature_scale2(logits, init_temp), labels).item()
         if log:
             print('Optimal temperature: %.3f' % init_temp)
             print('After temperature - ECE: %.3f' % (after_temperature_ece))
