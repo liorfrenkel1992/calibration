@@ -371,7 +371,7 @@ def set_temperature2(logits, labels, iters=1, cross_validate='ece',
                     confs = np.max(softmaxs, axis=1)
                     after_temperature_ece = ECE(confs, preds, labels, bin_size = 1/num_bins)
                     """
-                    ece_criterion(self.class_temperature_scale2(logits, csece_temperature), labels).item()
+                    ece_criterion(class_temperature_scale2(logits, csece_temperature), labels).item()
                     
                     if acc_check:
                         _, temp_accuracy, _, _, _ = test_classification_net_logits(class_temperature_scale2(logits, csece_temperature), labels)
