@@ -317,7 +317,7 @@ def set_temperature2(logits, labels, iters=1, cross_validate='ece',
         """
         Find tempearature vector for the model (using the validation set) with cross-validation on ECE
         """
-        ece_criterion = estECELoss(n_bins=25).cuda()
+        #ece_criterion = estECELoss(n_bins=25).cuda()
         ece_list = []
         
         # Calculate NLL and ECE before temperature scaling
