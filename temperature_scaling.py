@@ -351,7 +351,7 @@ def set_temperature2(logits, labels, iters=1, cross_validate='ece',
                 accuracy = temp_accuracy
 
         steps_limit = 0.5
-        temp_steps = torch.linspace(-steps_limit, steps_limit, (2 * steps_limit) / 0.1)
+        temp_steps = torch.linspace(-steps_limit, steps_limit, (2 * steps_limit) / 0.1 + 1)
         ece_val = 10 ** 7
         csece_val = 10 ** 7
         converged = False
