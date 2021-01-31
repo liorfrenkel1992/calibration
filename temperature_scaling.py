@@ -353,8 +353,7 @@ def set_temperature2(logits, labels, iters=1, cross_validate='ece',
         ece_val = 10 ** 7
         csece_val = 10 ** 7
         converged = False
-        prev_temperatures = csece_temperature[:]
-
+        prev_temperatures = csece_temperature.clone()
         #for iter in range(iters):
         while not converged:
             for label in range(logits.size()[1]):
