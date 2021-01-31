@@ -408,7 +408,7 @@ def set_temperature2(logits, labels, iters=1, cross_validate='ece',
             """
             ece_list.append(ece_criterion(class_temperature_scale2(logits, csece_temperature), labels).item())
             converged = torch.all(csece_temperature.eq(prev_temperatures))
-            prev_temperatures = csece_temperature
+            prev_temperatures = csece_temperature.clone()
         """
         if cross_validate == 'ece':
             temperature = T_opt_ece
