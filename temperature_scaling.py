@@ -350,6 +350,8 @@ def set_temperature2(logits, labels, iters=1, cross_validate='ece',
             if temp_accuracy >= accuracy:
                 accuracy = temp_accuracy
 
+        steps_limit = 0.5
+        temp_steps = torch.linspace(-steps_limit, steps_limit, 0.1)
         ece_val = 10 ** 7
         csece_val = 10 ** 7
         converged = False
@@ -357,7 +359,6 @@ def set_temperature2(logits, labels, iters=1, cross_validate='ece',
         #for iter in range(iters):
         while not converged:
             for label in range(logits.size()[1]):
-                temp_steps = [-0.3, -0.2, -0.1, 0.0, 0.1, 0.2, 0.3]
                 init_temp_value = T_csece[label].item()
                 #T = 0.1
                 """
