@@ -7,7 +7,7 @@ from torch import nn, optim
 from torch.nn import functional as F
 
 from Metrics.metrics import test_classification_net_logits
-from Metrics.metrics import ECELoss, ClassECELoss, posnegECELoss
+from Metrics.metrics import ECELoss, ClassECELoss, posnegECELoss, estECELoss
 from Metrics.metrics2 import ECE, softmax, test_classification_net_logits2
 
 
@@ -289,7 +289,7 @@ def set_temperature2(logits, labels, iters=1, cross_validate='ece',
         Tune single tempearature for the model (using the validation set) with cross-validation on ECE
         """
         # Calculate ECE before temperature scaling
-        ece_criterion = ECELoss(n_bins=25).cuda()
+        ece_criterion = estECELoss(n_bins=25).cuda()
         before_temperature_ece = ece_criterion(logits, labels).item()
         if log:
             print('Before temperature - ECE: %.3f' % (before_temperature_ece))
