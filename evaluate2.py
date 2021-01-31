@@ -149,7 +149,7 @@ if __name__ == "__main__":
     # Printing the required evaluation metrics
     if args.log:
         print ('Pre-scaling test ECE: ' + str(p_ece))
-        print ('Pre-scaling test accuracy: ' + str(acc))
+        print ('Pre-scaling test accuracy: ' + str(p_acc))
 
     if const_temp:
         temperature = set_temperature2(logits_val, labels_val, temp_opt_iters, cross_validate=cross_validation_error,
