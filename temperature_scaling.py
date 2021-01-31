@@ -357,7 +357,7 @@ def set_temperature2(logits, labels, iters=1, cross_validate='ece',
         #for iter in range(iters):
         while not converged:
             for label in range(logits.size()[1]):
-                temp_steps = [-0.2, -0.1, 0.0, 0.1, 0.2]
+                temp_steps = [-0.3, -0.2, -0.1, 0.0, 0.1, 0.2, 0.3]
                 init_temp_value = T_csece[label].item()
                 #T = 0.1
                 """
