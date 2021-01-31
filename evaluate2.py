@@ -144,10 +144,12 @@ if __name__ == "__main__":
     labels_test = torch.squeeze(torch.from_numpy(labels_test), -1).cuda()
 
     p_ece = ece_criterion(logits_test, labels_test).item()
+    _, p_acc, _, _, _ = test_classification_net_logits(logits_test, labels_test)
     
     # Printing the required evaluation metrics
     if args.log:
-        print ('ECE: ' + str(p_ece))
+        print ('Pre-scaling test ECE: ' + str(p_ece))
+        print ('Pre-scaling test accuracy: ' + str(acc))
 
     if const_temp:
         temperature = set_temperature2(logits_val, labels_val, temp_opt_iters, cross_validate=cross_validation_error,
@@ -162,6 +164,8 @@ if __name__ == "__main__":
     ece = ECE(confs, preds, labels_test, bin_size = 1/num_bins)
     """
     ece = ece_criterion(class_temperature_scale2(logits_test, csece_temperature), labels_test).item()
+    _, acc, _, _, _ = test_classification_net_logits(class_temperature_scale2(logits_test, csece_temperature), labels_test)
     
     if args.log:
-        print ('ECE (Class-based temp scaling): ' + str(ece))
+        print ('Post-scaling ECE (Class-based temp scaling): ' + str(ece))
+        print ('Post-scaling accuracy: ' + str(acc))
