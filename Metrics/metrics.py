@@ -474,7 +474,6 @@ class estECELoss(nn.Module):
     def forward(self, logits, labels):
         softmaxes = F.softmax(logits, dim=1)
         confidences, predictions = torch.max(softmaxes, 1)
-        accuracies = torch.zeros(softmaxes.size()[0]).cuda()
         accuracies = torch.gather(softmaxes, 1, labels.view(-1,1))
         #accuracies = predictions.eq(labels)
 
