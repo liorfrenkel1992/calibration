@@ -134,16 +134,33 @@ class ModelWithTemperature(nn.Module):
                 logits = torch.cat(logits_list).cuda()
                 labels = torch.cat(labels_list).cuda()
 
-            # Calculate NLL and ECE before temperature scaling
-            before_temperature_nll = nll_criterion(logits, labels).item()
             before_temperature_ece = ece_criterion(logits, labels).item()
-            before_temperature_csece, _ = csece_criterion(logits, labels)
-            if acc_check:
-                _, accuracy, _, _, _ = test_classification_net_logits(logits, labels)
-                        
-            if self.log:
-                print('Before temperature - NLL: {0:.3f}, ECE: {1:.3f}, classECE: {2}'.format(before_temperature_nll, before_temperature_ece, before_temperature_csece))
+            if log:
+                print('Before temperature - ECE: %.3f' % (before_temperature_ece))
 
+            ece_val = 10 ** 7
+            T_opt_ece = 1.0
+            T = 0.1
+            for i in range(100):
+                temperature = T
+                after_temperature_ece = ece_criterion(self.temperature_scale(logits), labels).item()
+                if ece_val > after_temperature_ece:
+                    T_opt_ece = T
+                    ece_val = after_temperature_ece
+                T += 0.1
+
+            init_temp = T_opt_ece
+            self.temperature = T_opt_ece
+            
+            # Calculate NLL and ECE after temperature scaling
+            after_temperature_ece = ece_criterion(self.temperature_scale(logits), labels).item()
+            if log:
+                print('Optimal temperature: %.3f' % init_temp)
+                print('After temperature - ECE: %.3f' % (after_temperature_ece))
+
+            """
+            Find tempearature vector for the model (using the validation set) with cross-validation on ECE
+            """
             T_opt_nll = 1.0
             T_opt_ece = 1.0
             T_opt_csece = init_temp*torch.ones(logits.size()[1]).cuda()
@@ -155,36 +172,47 @@ class ModelWithTemperature(nn.Module):
                 if temp_accuracy >= accuracy:
                     accuracy = temp_accuracy
             
+            steps_limit = 0.2
+            temp_steps = torch.linspace(-steps_limit, steps_limit, int((2 * steps_limit) / 0.1 + 1))
+            converged = False
+            prev_temperatures = self.csece_temperature.clone()
             nll_val = 10 ** 7
             ece_val = 10 ** 7
             csece_val = 10 ** 7
                     
-            for iter in range(iters):
+            #for iter in range(iters):
+            while not converged:
                 for label in range(logits.size()[1]):
-                    T = 0.1
+                    init_temp_value = T_csece[label].item()
+                    #T = 0.1
                     """
                     nll_val = 10 ** 7
                     ece_val = 10 ** 7
                     csece_val = 10 ** 7
                     """
-                    for i in range(100):
-                        T_csece[label] = T
+                    #for i in range(100):
+                    for step in temp_steps:
+                        #T_csece[label] = T
+                        T_csece[label] = init_temp_value + step
                         self.csece_temperature = T_csece
-                        self.temperature = T
+                        #self.temperature = T
                         self.cuda()
-                        after_temperature_nll = nll_criterion(self.temperature_scale(logits), labels).item()
+                        #after_temperature_nll = nll_criterion(self.temperature_scale(logits), labels).item()
                         after_temperature_ece = ece_criterion(self.class_temperature_scale(logits), labels).item()
-                        after_temperature_ece_reg = ece_criterion(self.temperature_scale(logits), labels).item()
+                        #after_temperature_ece_reg = ece_criterion(self.temperature_scale(logits), labels).item()
                         if acc_check:
                             _, temp_accuracy, _, _, _ = test_classification_net_logits(self.class_temperature_scale(logits), labels)
                         
+                        """
                         if nll_val > after_temperature_nll:
                             T_opt_nll = T
                             nll_val = after_temperature_nll
+                        
 
                         if ece_val > after_temperature_ece_reg:
                             T_opt_ece = T
                             ece_val = after_temperature_ece_reg
+                        """
 
                         if acc_check:
                             if csece_val > after_temperature_ece and temp_accuracy >= accuracy:
@@ -193,20 +221,25 @@ class ModelWithTemperature(nn.Module):
                                 accuracy = temp_accuracy
                         else:
                             if csece_val > after_temperature_ece:
-                                T_opt_csece[label] = T
+                                #T_opt_csece[label] = T
+                                T_opt_csece[label] = init_temp_value + step
                                 csece_val = after_temperature_ece
-                        T += 0.1
+                        #T += 0.1
                     T_csece[label] = T_opt_csece[label]
                 self.csece_temperature = T_opt_csece
                 self.ece_list.append(ece_criterion(self.class_temperature_scale(logits), labels).item())
+                converged = torch.all(csece_temperature.eq(prev_temperatures))
+                prev_temperatures = csece_temperature.clone()
 
+            """
             if cross_validate == 'ece':
                 self.temperature = T_opt_ece
             else:
                 self.temperature = T_opt_nll
+            """
             self.csece_temperature = T_opt_csece
             self.cuda()
-
+            """
             # Calculate NLL and ECE after temperature scaling
             after_temperature_nll = nll_criterion(self.temperature_scale(logits), labels).item()
             after_temperature_ece = ece_criterion(self.temperature_scale(logits), labels).item()
@@ -215,7 +248,7 @@ class ModelWithTemperature(nn.Module):
             if self.log:
                 print('Optimal temperature: %.3f' % self.temperature)
                 print('After temperature - NLL: {0:.3f}, ECE: {1:.3f}, classECE: {2}'.format(after_temperature_nll, after_temperature_ece, after_temperature_csece))
-
+            """
         return self
 
 
