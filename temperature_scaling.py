@@ -289,7 +289,7 @@ def set_temperature2(logits, labels, iters=1, cross_validate='ece',
         Tune single tempearature for the model (using the validation set) with cross-validation on ECE
         """
         # Calculate ECE before temperature scaling
-        ece_criterion = ECELoss(n_bins=15).cuda()
+        ece_criterion = ECELoss(n_bins=num_bins).cuda()
         before_temperature_ece = ece_criterion(logits, labels).item()
         if log:
             print('Before temperature - ECE: %.3f' % (before_temperature_ece))
@@ -317,7 +317,7 @@ def set_temperature2(logits, labels, iters=1, cross_validate='ece',
         """
         Find tempearature vector for the model (using the validation set) with cross-validation on ECE
         """
-        #ece_criterion = estECELoss(n_bins=15).cuda()
+        #ece_criterion = estECELoss(n_bins=num_bins).cuda()
         ece_list = []
         
         # Calculate NLL and ECE before temperature scaling
