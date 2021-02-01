@@ -357,8 +357,9 @@ def set_temperature2(logits, labels, iters=1, cross_validate='ece',
         csece_val = 10 ** 7
         converged = False
         prev_temperatures = csece_temperature.clone()
+        iter = 0
         #for iter in range(iters):
-        while not converged:
+        while not converged and iter < 5:
             for label in range(logits.size()[1]):
                 init_temp_value = T_csece[label].item()
                 #T = 0.1
@@ -411,6 +412,7 @@ def set_temperature2(logits, labels, iters=1, cross_validate='ece',
             ece_list.append(ece_criterion(class_temperature_scale2(logits, csece_temperature), labels).item())
             converged = torch.all(csece_temperature.eq(prev_temperatures))
             prev_temperatures = csece_temperature.clone()
+            iter += 1
         """
         if cross_validate == 'ece':
             temperature = T_opt_ece
