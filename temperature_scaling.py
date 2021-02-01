@@ -135,7 +135,7 @@ class ModelWithTemperature(nn.Module):
                 labels = torch.cat(labels_list).cuda()
 
             before_temperature_ece = ece_criterion(logits, labels).item()
-            if log:
+            if self.log:
                 print('Before temperature - ECE: %.3f' % (before_temperature_ece))
 
             ece_val = 10 ** 7
@@ -154,7 +154,7 @@ class ModelWithTemperature(nn.Module):
             
             # Calculate NLL and ECE after temperature scaling
             after_temperature_ece = ece_criterion(self.temperature_scale(logits), labels).item()
-            if log:
+            if self.log:
                 print('Optimal temperature: %.3f' % init_temp)
                 print('After temperature - ECE: %.3f' % (after_temperature_ece))
 
