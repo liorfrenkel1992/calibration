@@ -357,20 +357,20 @@ def set_temperature2(logits, labels, iters=1, cross_validate='ece',
         csece_val = 10 ** 7
         converged = False
         prev_temperatures = csece_temperature.clone()
-        #for iter in range(iters):
-        while not converged:
+        for iter in range(iters):
+        #while not converged:
             for label in range(logits.size()[1]):
-                init_temp_value = T_csece[label].item()
-                #T = 0.1
+                #init_temp_value = T_csece[label].item()
+                T = 0.1
                 """
                 nll_val = 10 ** 7
                 ece_val = 10 ** 7
                 csece_val = 10 ** 7
                 """
-                #for i in range(100):
-                for step in temp_steps:
-                    #T_csece[label] = T
-                    T_csece[label] = init_temp_value + step
+                for i in range(100):
+                #for step in temp_steps:
+                    T_csece[label] = T
+                    #T_csece[label] = init_temp_value + step
                     csece_temperature = T_csece
                     temperature = T
                     """
@@ -399,7 +399,7 @@ def set_temperature2(logits, labels, iters=1, cross_validate='ece',
                         if csece_val > after_temperature_ece:
                             T_opt_csece[label] = init_temp_value + step
                             csece_val = after_temperature_ece
-                    #T += 0.1
+                    T += 0.1
                 T_csece[label] = T_opt_csece[label]
             csece_temperature = T_opt_csece
             """
@@ -409,8 +409,8 @@ def set_temperature2(logits, labels, iters=1, cross_validate='ece',
             ece_list.append(ECE(confs, preds, labels, bin_size = 1/num_bins))
             """
             ece_list.append(ece_criterion(class_temperature_scale2(logits, csece_temperature), labels).item())
-            converged = torch.all(csece_temperature.eq(prev_temperatures))
-            prev_temperatures = csece_temperature.clone()
+            #converged = torch.all(csece_temperature.eq(prev_temperatures))
+            #prev_temperatures = csece_temperature.clone()
         """
         if cross_validate == 'ece':
             temperature = T_opt_ece
