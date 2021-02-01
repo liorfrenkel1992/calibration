@@ -28,7 +28,7 @@ def parseArgs():
     save_loc = './'
     save_plots_loc = './'
     saved_model_name = 'resnet110_cross_entropy_350.model'
-    num_bins = 25
+    num_bins = 15
     model_name = None
     train_batch_size = 128
     test_batch_size = 128
@@ -125,7 +125,7 @@ if __name__ == "__main__":
     logits_file =  args.logits_file
     logits_path = args.logits_path
 
-    ece_criterion = ECELoss(n_bins=25).cuda()
+    ece_criterion = ECELoss(n_bins=num_bins).cuda()
     
     # Loading logits and labels
     file = logits_path + logits_file
@@ -153,10 +153,10 @@ if __name__ == "__main__":
 
     if const_temp:
         temperature = set_temperature2(logits_val, labels_val, temp_opt_iters, cross_validate=cross_validation_error,
-                                       init_temp=init_temp, acc_check=acc_check, const_temp=const_temp, log=args.log, num_bins=25)
+                                       init_temp=init_temp, acc_check=acc_check, const_temp=const_temp, log=args.log, num_bins=num_bins)
     else:                              
         csece_temperature = set_temperature2(logits_val, labels_val, temp_opt_iters, cross_validate=cross_validation_error,
-                                                          init_temp=init_temp, acc_check=acc_check, const_temp=const_temp, log=args.log, num_bins=25)
+                                                          init_temp=init_temp, acc_check=acc_check, const_temp=const_temp, log=args.log, num_bins=num_bins)
     """
     softmaxs = softmax(class_temperature_scale2(logits_test, csece_temperature))
     preds = np.argmax(softmaxs, axis=1)
