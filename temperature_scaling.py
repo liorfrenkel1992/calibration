@@ -142,7 +142,8 @@ class ModelWithTemperature(nn.Module):
             T_opt_ece = 1.0
             T = 0.1
             for i in range(100):
-                temperature = T
+                self.temperature = T
+                self.cuda()
                 after_temperature_ece = ece_criterion(self.temperature_scale(logits), labels).item()
                 if ece_val > after_temperature_ece:
                     T_opt_ece = T
