@@ -155,7 +155,7 @@ if __name__ == "__main__":
         temperature = set_temperature2(logits_val, labels_val, temp_opt_iters, cross_validate=cross_validation_error,
                                        init_temp=init_temp, acc_check=acc_check, const_temp=const_temp, log=args.log, num_bins=num_bins)
     else:                              
-        csece_temperature = set_temperature2(logits_val, labels_val, temp_opt_iters, cross_validate=cross_validation_error,
+        csece_temperature, single_temp = set_temperature2(logits_val, labels_val, temp_opt_iters, cross_validate=cross_validation_error,
                                                           init_temp=init_temp, acc_check=acc_check, const_temp=const_temp, log=args.log, num_bins=num_bins)
     """
     softmaxs = softmax(class_temperature_scale2(logits_test, csece_temperature))
@@ -164,8 +164,11 @@ if __name__ == "__main__":
     ece = ECE(confs, preds, labels_test, bin_size = 1/num_bins)
     """
     ece = ece_criterion(class_temperature_scale2(logits_test, csece_temperature), labels_test).item()
+    ece_single = ece_criterion(temperature_scale2(logits_test, single_temp), labels_test).item()
     _, acc, _, _, _ = test_classification_net_logits(class_temperature_scale2(logits_test, csece_temperature), labels_test)
     
     if args.log:
         print ('Post-scaling ECE (Class-based temp scaling): ' + str(ece))
+        print ('Post-scaling ECE (Single temp scaling): ' + str(ece_single))
         print ('Post-scaling accuracy: ' + str(acc))
+        
