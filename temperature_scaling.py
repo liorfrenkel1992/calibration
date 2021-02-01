@@ -358,6 +358,7 @@ def set_temperature2(logits, labels, iters=1, cross_validate='ece',
         converged = False
         prev_temperatures = csece_temperature.clone()
         for iter in range(iters):
+            print('Started iter ' + str(iter))
         #while not converged:
             for label in range(logits.size()[1]):
                 #init_temp_value = T_csece[label].item()
@@ -397,7 +398,8 @@ def set_temperature2(logits, labels, iters=1, cross_validate='ece',
                             accuracy = temp_accuracy
                     else:
                         if csece_val > after_temperature_ece:
-                            T_opt_csece[label] = init_temp_value + step
+                            #T_opt_csece[label] = init_temp_value + step
+                            T_opt_csece[label] = T
                             csece_val = after_temperature_ece
                     T += 0.1
                 T_csece[label] = T_opt_csece[label]
