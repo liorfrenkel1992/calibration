@@ -435,4 +435,4 @@ def set_temperature2(logits, labels, iters=1, cross_validate='ece',
     if const_temp:
         return temperature
     else:
-        return csece_temperature
+        return csece_temperature, init_temp
