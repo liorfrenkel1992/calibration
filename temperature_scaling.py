@@ -228,8 +228,8 @@ class ModelWithTemperature(nn.Module):
                     T_csece[label] = T_opt_csece[label]
                 self.csece_temperature = T_opt_csece
                 self.ece_list.append(ece_criterion(self.class_temperature_scale(logits), labels).item())
-                converged = torch.all(csece_temperature.eq(prev_temperatures))
-                prev_temperatures = csece_temperature.clone()
+                converged = torch.all(self.csece_temperature.eq(prev_temperatures))
+                prev_temperatures = self.csece_temperature.clone()
 
             """
             if cross_validate == 'ece':
