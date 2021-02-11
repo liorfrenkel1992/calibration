@@ -105,7 +105,7 @@ def pos_neg_ece_plot(acc, csece_pos, csece_neg, save_plots_loc, dataset, model, 
     plt.xticks(fontsize=10)
     plt.ylabel('ECE', fontsize=10)
     plt.yticks(fontsize=10)
-    plt.set_ylim(0, 0.01)
+    plt.ylim(0, 0.01)
     if const_temp:
         plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'pos_ece_acc_{}_scaling_{}_{}_{}_const_temp.pdf'.format(scaling_related, dataset, model, trained_loss)), dpi=40)
     if acc_check:
@@ -120,7 +120,7 @@ def pos_neg_ece_plot(acc, csece_pos, csece_neg, save_plots_loc, dataset, model, 
     plt.xticks(fontsize=10)
     plt.ylabel('ECE', fontsize=10)
     plt.yticks(fontsize=10)
-    plt.set_ylim(0, 0.01)
+    plt.ylim(0, 0.01)
     if const_temp:
         plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'neg_ece_acc_{}_scaling_{}_{}_{}_const_temp.pdf'.format(scaling_related, dataset, model, trained_loss)), dpi=40)
     if acc_check:
