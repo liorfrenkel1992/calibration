@@ -107,11 +107,11 @@ def pos_neg_ece_plot(acc, csece_pos, csece_neg, save_plots_loc, dataset, model, 
     plt.yticks(fontsize=10)
     plt.ylim(0, 0.01)
     if const_temp:
-        plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'pos_ece_acc_{}_scaling_{}_{}_{}_const_temp.pdf'.format(scaling_related, dataset, model, trained_loss)), dpi=40)
+        plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'pos_ece_acc_{}_scaling_{}_{}_{}_const_temp.pdf'.format(scaling_related, dataset, model, trained_loss)), dpi=100)
     if acc_check:
-        plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'pos_ece_acc_{}_scaling_{}_{}_{}_acc.pdf'.format(scaling_related, dataset, model, trained_loss)), dpi=40)
+        plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'pos_ece_acc_{}_scaling_{}_{}_{}_acc.pdf'.format(scaling_related, dataset, model, trained_loss)), dpi=100)
     else:
-        plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'pos_ece_acc_{}_scaling_{}_{}_{}.pdf'.format(scaling_related, dataset, model, trained_loss)), dpi=40)
+        plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'pos_ece_acc_{}_scaling_{}_{}_{}.pdf'.format(scaling_related, dataset, model, trained_loss)), dpi=100)
     plt.close()
 
     plt.figure()
@@ -122,11 +122,11 @@ def pos_neg_ece_plot(acc, csece_pos, csece_neg, save_plots_loc, dataset, model, 
     plt.yticks(fontsize=10)
     plt.ylim(0, 0.01)
     if const_temp:
-        plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'neg_ece_acc_{}_scaling_{}_{}_{}_const_temp.pdf'.format(scaling_related, dataset, model, trained_loss)), dpi=40)
+        plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'neg_ece_acc_{}_scaling_{}_{}_{}_const_temp.pdf'.format(scaling_related, dataset, model, trained_loss)), dpi=100)
     if acc_check:
-        plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'neg_ece_acc_{}_scaling_{}_{}_{}_acc.pdf'.format(scaling_related, dataset, model, trained_loss)), dpi=40)
+        plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'neg_ece_acc_{}_scaling_{}_{}_{}_acc.pdf'.format(scaling_related, dataset, model, trained_loss)), dpi=100)
     else:
-        plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'neg_ece_acc_{}_scaling_{}_{}_{}.pdf'.format(scaling_related, dataset, model, trained_loss)), dpi=40)
+        plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'neg_ece_acc_{}_scaling_{}_{}_{}.pdf'.format(scaling_related, dataset, model, trained_loss)), dpi=100)
     plt.close()
     
 def ece_acc_plot(acc, csece, save_plots_loc, dataset, model, trained_loss, acc_check=False, scaling_related='before', const_temp=False, unc=False):
@@ -137,18 +137,18 @@ def ece_acc_plot(acc, csece, save_plots_loc, dataset, model, trained_loss, acc_c
     plt.ylabel('ECE', fontsize=10)
     plt.yticks(fontsize=10)
     if const_temp:
-        plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'ece_acc_{}_scaling_{}_{}_{}_const_temp.pdf'.format(scaling_related, dataset, model, trained_loss)), dpi=40)
+        plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'ece_acc_{}_scaling_{}_{}_{}_const_temp.pdf'.format(scaling_related, dataset, model, trained_loss)), dpi=100)
     else:
         if acc_check:
             if unc:
-                plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'uncalibrated_ece_acc_{}_scaling_{}_{}_{}_acc.pdf'.format(scaling_related, dataset, model, trained_loss)), dpi=40)
+                plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'uncalibrated_ece_acc_{}_scaling_{}_{}_{}_acc.pdf'.format(scaling_related, dataset, model, trained_loss)), dpi=100)
             else:
-                plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'ece_acc_{}_scaling_{}_{}_{}_acc.pdf'.format(scaling_related, dataset, model, trained_loss)), dpi=40)
+                plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'ece_acc_{}_scaling_{}_{}_{}_acc.pdf'.format(scaling_related, dataset, model, trained_loss)), dpi=100)
         else:
             if unc:
-                plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'uncalibrated_ece_acc_{}_scaling_{}_{}_{}.pdf'.format(scaling_related, dataset, model, trained_loss)), dpi=40)
+                plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'uncalibrated_ece_acc_{}_scaling_{}_{}_{}.pdf'.format(scaling_related, dataset, model, trained_loss)), dpi=100)
             else:
-                plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'ece_acc_{}_scaling_{}_{}_{}.pdf'.format(scaling_related, dataset, model, trained_loss)), dpi=40)
+                plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'ece_acc_{}_scaling_{}_{}_{}.pdf'.format(scaling_related, dataset, model, trained_loss)), dpi=100)
     plt.close()
     
 def ece_iters_plot(iters, scaled_model, save_plots_loc, dataset, model, trained_loss, init_temp, acc_check=False):
