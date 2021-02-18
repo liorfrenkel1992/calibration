@@ -22,7 +22,7 @@ from Net.densenet import densenet121
 
 # Import metrics to compute
 from Metrics.metrics import test_classification_net_logits
-from Metrics.metrics import ECELoss, AdaptiveECELoss, ClasswiseECELoss, ClassECELoss, posnegECELoss, binsECELoss, diffECELoss
+from Metrics.metrics import ECELoss, AdaptiveECELoss, ClasswiseECELoss, ClassECELoss, posnegECELoss, binsECELoss, diffECELoss, posnegECEbinsLoss
 from Metrics.plots import reliability_plot, pos_neg_ece_plot, ece_acc_plot, ece_iters_plot, temp_acc_plot, diff_ece_plot, bins_over_conf_plot
 
 # Import temperature scaling and NLL utilities
@@ -226,6 +226,7 @@ if __name__ == "__main__":
     posneg_csece_criterion = posnegECELoss().cuda()
     bins_csece_criterion = binsECELoss().cuda()
     diff_ece_criterion = diffECELoss().cuda()
+    posneg_bins_ece_criterion = posnegECEbinsLoss().cuda()
 
     logits, labels = get_logits_labels(test_loader, net)
     conf_matrix, p_accuracy, _, predictions, confidences = test_classification_net_logits(logits, labels)
@@ -237,15 +238,19 @@ if __name__ == "__main__":
     p_adaece = adaece_criterion(logits, labels).item()
     p_cece = cece_criterion(logits, labels).item()
     p_csece, p_acc = csece_criterion(logits, labels)
+    
     if pos_neg_ece:
         p_csece_high, p_csece_low, _ = bins_csece_criterion(logits, labels)
         p_csece_pos, p_csece_neg, p_acc = posneg_csece_criterion(logits, labels)
+        p_bins_ece_over, p_bins_ece_under, bins_vec = posneg_bins_ece_criterion(logits, labels)
     p_nll = nll_criterion(logits, labels).item()
     _, over_conf, bins = diff_ece_criterion(logits, labels)
     
 
     res_str = '{:s}&{:.4f}&{:.4f}&{:.4f}&{:.4f}&{:.4f}'.format(saved_model_name,  1-p_accuracy,  p_nll,  p_ece,  p_adaece, p_cece)
 
+    # Over and under confidence ece vs. bins
+    pos_neg_ece_bins_plot(bins_vec, p_bins_ece_over, p_bins_ece_under, save_plots_loc, dataset, args.model, trained_loss, acc_check=acc_check, scaling_related='before')
     
     if create_plots:
         if pos_neg_ece:
