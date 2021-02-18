@@ -168,6 +168,7 @@ class ModelWithTemperature(nn.Module):
             T_csece = init_temp*torch.ones(logits.size()[1]).cuda()
             self.csece_temperature = T_csece
             self.ece_list.append(ece_criterion(self.class_temperature_scale(logits), labels).item())
+            _, accuracy, _, _, _ = test_classification_net_logits(logits, labels)
             if acc_check:
                 _, temp_accuracy, _, _, _ = test_classification_net_logits(self.class_temperature_scale(logits), labels)
                 if temp_accuracy >= accuracy:
