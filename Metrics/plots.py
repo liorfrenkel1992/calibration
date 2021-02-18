@@ -98,6 +98,35 @@ def bin_strength_plot(confs, preds, labels, num_bins=15):
     plt.xlabel('Confidence')
     plt.show()
     
+def pos_neg_ece_bins_plot(bins_vec, bins_ece_over, bins_ece_under, save_plots_loc, dataset, model, trained_loss, acc_check=False, scaling_related='before', const_temp=False):
+    plt.figure()
+    plt.scatter(bins_vec, bins_ece_over.cpu())
+    plt.xlabel('bins', fontsize=12)
+    plt.xticks(fontsize=10)
+    plt.ylabel('ECE', fontsize=12)
+    plt.yticks(fontsize=10)
+    if const_temp:
+        plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'over_ece_bins_{}_scaling_{}_{}_{}_const_temp.pdf'.format(scaling_related, dataset, model, trained_loss)), dpi=40)
+    if acc_check:
+        plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'over_ece_bins_{}_scaling_{}_{}_{}_acc.pdf'.format(scaling_related, dataset, model, trained_loss)), dpi=40)
+    else:
+        plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'over_ece_bins_{}_scaling_{}_{}_{}.pdf'.format(scaling_related, dataset, model, trained_loss)), dpi=40)
+    plt.close()
+
+    plt.figure()
+    plt.scatter(bins_vec, bins_ece_under.cpu())
+    plt.xlabel('bins', fontsize=12)
+    plt.xticks(fontsize=10)
+    plt.ylabel('ECE', fontsize=12)
+    plt.yticks(fontsize=10)
+    if const_temp:
+        plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'under_ece_bins_{}_scaling_{}_{}_{}_const_temp.pdf'.format(scaling_related, dataset, model, trained_loss)), dpi=40)
+    if acc_check:
+        plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'under_ece_bins_{}_scaling_{}_{}_{}_acc.pdf'.format(scaling_related, dataset, model, trained_loss)), dpi=40)
+    else:
+        plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'under_ece_bins_{}_scaling_{}_{}_{}.pdf'.format(scaling_related, dataset, model, trained_loss)), dpi=40)
+    plt.close()
+    
 def pos_neg_ece_plot(acc, csece_pos, csece_neg, save_plots_loc, dataset, model, trained_loss, acc_check=False, scaling_related='before', const_temp=False):
     plt.figure()
     plt.scatter(acc, csece_pos.cpu())
