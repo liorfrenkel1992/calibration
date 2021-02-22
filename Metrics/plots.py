@@ -103,13 +103,14 @@ def pos_neg_ece_bins_plot(bins_vec, bins_ece_over, bins_ece_under, bins_ece_over
     plt.figure()
     plt.scatter(bins_vec, bins_ece_over.cpu())
     plt.scatter(bins_vec, bins_ece_under.cpu())
-    plt.scatter(bins_vec, bins_ece_over_after.cpu())
-    plt.scatter(bins_vec, bins_ece_under_after.cpu())
+    #plt.scatter(bins_vec, bins_ece_over_after.cpu())
+    #plt.scatter(bins_vec, bins_ece_under_after.cpu())
     plt.xlabel('bins', fontsize=12)
     plt.xticks(fontsize=10)
     plt.ylabel('ECE', fontsize=12)
     plt.yticks(fontsize=10)
-    plt.legend(('over-confidence classes', 'under-confidence classes', 'over-confidence classes after scaling', 'under-confidence classes after scaling'), fontsize=10)
+    #plt.legend(('over-confidence classes', 'under-confidence classes', 'over-confidence classes after scaling', 'under-confidence classes after scaling'), fontsize=10)
+    plt.legend(('over-confidence classes', 'under-confidence classes'), fontsize=10)
     if const_temp:
         plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'over_under_ece_bins_{}_scaling_{}_{}_{}_const_temp.pdf'.format(scaling_related, dataset, model, trained_loss)), dpi=40)
     if acc_check:
