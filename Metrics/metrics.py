@@ -545,10 +545,10 @@ class posnegECEbinsLoss(nn.Module):
                         counts_under[i] += 1
                 bin += 1
                 
-        print("Lowest bin average accuracy per class: ", lower_bin_acc)
-        print("Lowest bin average confidence per class: ", lower_bin_conf)
-        print("Upper bin average accuracy per class: ", upper_bin_acc)
-        print("Upper bin average confidence per class: ", upper_bin_conf)
+        print("Lowest bin average accuracy per class: ", lower_bin_acc.mean().item())
+        print("Lowest bin average confidence per class: ", lower_bin_conf.mean().item())
+        print("Upper bin average accuracy per class: ", upper_bin_acc.mean().item())
+        print("Upper bin average confidence per class: ", upper_bin_conf.mean().item())
                               
         return over_ece_bins, under_ece_bins, self.bin_lowers
 
