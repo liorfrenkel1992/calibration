@@ -525,6 +525,7 @@ class posnegECEbinsLoss(nn.Module):
             bin = 0
 
             for bin_lower, bin_upper in zip(self.bin_lowers, self.bin_uppers):
+                print(bin_lower)
                 in_bin = class_confidences.gt(bin_lower.item()) * class_confidences.le(bin_upper.item())
                 prop_in_bin = in_bin.float().mean()
                 if prop_in_bin.item() > 0:
