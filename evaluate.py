@@ -252,9 +252,10 @@ if __name__ == "__main__":
 
     res_str = '{:s}&{:.4f}&{:.4f}&{:.4f}&{:.4f}&{:.4f}'.format(saved_model_name,  1-p_accuracy,  p_nll,  p_ece,  p_adaece, p_cece)
 
-    # Over and under confidence ece vs. bins
-    pos_neg_ece_bins_plot(bins_vec, p_bins_ece_over, p_bins_ece_under, p_bins_ece_over_after, p_bins_ece_under_after, save_plots_loc, dataset,
-                          args.model, trained_loss, acc_check=acc_check, scaling_related='before_after')
+    if pos_neg_ece:
+        # Over and under confidence ece vs. bins
+        pos_neg_ece_bins_plot(bins_vec, p_bins_ece_over, p_bins_ece_under, p_bins_ece_over_after, p_bins_ece_under_after, save_plots_loc, dataset,
+                              args.model, trained_loss, acc_check=acc_check, scaling_related='before_after')
     
     if create_plots:
         if pos_neg_ece:
