@@ -184,6 +184,16 @@ class ECELoss(nn.Module):
                 accuracy_in_bin = accuracies[in_bin].float().mean()
                 avg_confidence_in_bin = confidences[in_bin].mean()
                 ece += torch.abs(avg_confidence_in_bin - accuracy_in_bin) * prop_in_bin
+                if bin_lower == 0:
+                    lower_bin_acc = accuracy_in_bin
+                    lower_bin_conf = avg_confidence_in_bin
+                    print("Lowest bin average accuracy: ", lower_bin_acc)
+                    print("Lowest bin average confidence: ", lower_bin_conf)
+                if bin_upper == 1:
+                    upper_bin_acc = accuracy_in_bin
+                    upper_bin_conf = avg_confidence_in_bin
+                    print("Upper bin average accuracy: ", upper_bin_acc)
+                    print("Upper bin average confidence: ", upper_bin_conf)
 
         return ece
 
@@ -523,6 +533,7 @@ class posnegECEbinsLoss(nn.Module):
                 if prop_in_bin.item() > 0:
                     accuracy_in_bin = labels_in_class[in_bin].float().mean()
                     avg_confidence_in_bin = class_confidences[in_bin].mean()
+                    
                     if avg_confidence_in_bin - accuracy_in_bin > 0:
                         over_ece_bins[bin] += torch.abs(avg_confidence_in_bin - accuracy_in_bin) * prop_in_bin
                         bins_over.append(bin_lower)
