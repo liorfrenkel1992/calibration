@@ -499,6 +499,7 @@ class posnegECEbinsLoss(nn.Module):
         bin_boundaries = torch.linspace(0, 1, n_bins + 1)
         self.bin_lowers = bin_boundaries[:-1]
         self.bin_uppers = bin_boundaries[1:]
+        self.n_bins = n_bins
 
     def forward(self, logits, labels):
         num_classes = int((torch.max(labels) + 1).item())
@@ -515,6 +516,8 @@ class posnegECEbinsLoss(nn.Module):
         lower_bin_conf = torch.zeros(num_classes, device=logits.device)
         upper_bin_acc = torch.zeros(num_classes, device=logits.device)
         upper_bin_conf = torch.zeros(num_classes, device=logits.device)
+        mid_bin_acc = torch.zeros(num_classes, device=logits.device)
+        mid_bin_conf = torch.zeros(num_classes, device=logits.device)
         
         for i in range(num_classes):
             class_confidences = softmaxes[:, i]
@@ -534,6 +537,9 @@ class posnegECEbinsLoss(nn.Module):
                     if bin_upper == 1:
                         upper_bin_acc[i] += accuracy_in_bin
                         upper_bin_conf[i] += avg_confidence_in_bin
+                    if bin_lower == ceil(self.n_bins/2) / self.n_bins:
+                        mid_bin_acc[i] += accuracy_in_bin
+                        mid_bin_conf[i] += avg_confidence_in_bin
                         
                     if avg_confidence_in_bin - accuracy_in_bin > 0:
                         over_ece_bins[bin] += torch.abs(avg_confidence_in_bin - accuracy_in_bin) * prop_in_bin
@@ -549,6 +555,8 @@ class posnegECEbinsLoss(nn.Module):
         print("Lowest bin average confidence per class: ", lower_bin_conf.mean().item())
         print("Upper bin average accuracy per class: ", upper_bin_acc.mean().item())
         print("Upper bin average confidence per class: ", upper_bin_conf.mean().item())
+        print("Middle bin average accuracy per class: ", mid_bin_acc.mean().item())
+        print("Middle bin average confidence per class: ", mid_bin_conf.mean().item())
                               
         return over_ece_bins, under_ece_bins, self.bin_lowers
 
