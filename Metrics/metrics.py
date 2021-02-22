@@ -525,7 +525,6 @@ class posnegECEbinsLoss(nn.Module):
             bin = 0
 
             for bin_lower, bin_upper in zip(self.bin_lowers, self.bin_uppers):
-                print(bin_lower)
                 in_bin = class_confidences.gt(bin_lower.item()) * class_confidences.le(bin_upper.item())
                 prop_in_bin = in_bin.float().mean()
                 if prop_in_bin.item() > 0:
@@ -538,7 +537,7 @@ class posnegECEbinsLoss(nn.Module):
                     if bin_upper == 1:
                         upper_bin_acc[i] += accuracy_in_bin
                         upper_bin_conf[i] += avg_confidence_in_bin
-                    if bin_lower == 3 / self.n_bins:
+                    if bin_lower == self.bin_lowers[int(self.n_bins / 2)]:
                         mid_bin_acc[i] += accuracy_in_bin
                         mid_bin_conf[i] += avg_confidence_in_bin
                         
