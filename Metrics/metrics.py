@@ -537,7 +537,7 @@ class posnegECEbinsLoss(nn.Module):
                     if bin_upper == 1:
                         upper_bin_acc[i] += accuracy_in_bin
                         upper_bin_conf[i] += avg_confidence_in_bin
-                    if bin_lower == math.floor(self.n_bins/2) / self.n_bins:
+                    if bin_lower == 3 / self.n_bins:
                         mid_bin_acc[i] += accuracy_in_bin
                         mid_bin_conf[i] += avg_confidence_in_bin
                         
