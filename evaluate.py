@@ -28,6 +28,8 @@ from Metrics.plots import reliability_plot, pos_neg_ece_plot, ece_acc_plot, ece_
 # Import temperature scaling and NLL utilities
 from temperature_scaling import ModelWithTemperature
 
+os.environ["CUDA_VISIBLE_DEVICES"] = "2"
+
 
 # Dataset params
 dataset_num_classes = {
