@@ -169,11 +169,14 @@ class ECELoss(nn.Module):
         bin_boundaries = torch.linspace(0, 1, n_bins + 1)
         self.bin_lowers = bin_boundaries[:-1]
         self.bin_uppers = bin_boundaries[1:]
+        self.n_bins = n_bins
 
     def forward(self, logits, labels):
         softmaxes = F.softmax(logits, dim=1)
         confidences, predictions = torch.max(softmaxes, 1)
         accuracies = predictions.eq(labels)
+        #counts_over = 0
+        #counts_under = 0
 
         ece = torch.zeros(1, device=logits.device)
         for bin_lower, bin_upper in zip(self.bin_lowers, self.bin_uppers):
@@ -183,7 +186,14 @@ class ECELoss(nn.Module):
             if prop_in_bin.item() > 0:
                 accuracy_in_bin = accuracies[in_bin].float().mean()
                 avg_confidence_in_bin = confidences[in_bin].mean()
+                #if accuracy_in_bin < avg_confidence_in_bin:
+                    #counts_over += 1
+                #else:
+                    #counts_under += 1
                 ece += torch.abs(avg_confidence_in_bin - accuracy_in_bin) * prop_in_bin
+        
+        #print('ECE count of over-confidences bins: ', counts_over)
+        #print('ECE count of under-confidences bins: ', counts_under)
                 
         return ece
 
@@ -506,8 +516,8 @@ class posnegECEbinsLoss(nn.Module):
         softmaxes = F.softmax(logits, dim=1)
         per_class_sce = None
         
-        counts_over = torch.zeros(num_classes)
-        counts_under = torch.zeros(num_classes)
+        counts_over = torch.zeros((self.n_bins, num_classes))
+        counts_under = torch.zeros((self.n_bins, num_classes))
         bins_over = []
         bins_under = []
         over_ece_bins = torch.zeros(self.bin_lowers.shape, device=logits.device)
@@ -544,20 +554,51 @@ class posnegECEbinsLoss(nn.Module):
                     if avg_confidence_in_bin - accuracy_in_bin > 0:
                         over_ece_bins[bin] += torch.abs(avg_confidence_in_bin - accuracy_in_bin) * prop_in_bin
                         bins_over.append(bin_lower)
-                        counts_over[i] += 1 
+                        counts_over[bin, i] += 1 
                     else:
                         under_ece_bins[bin] += torch.abs(avg_confidence_in_bin - accuracy_in_bin) * prop_in_bin
                         bins_under.append(bin_lower)
-                        counts_under[i] += 1
+                        counts_under[bin, i] += 1
                 bin += 1
                 
         print("Lowest bin average accuracy per class: ", lower_bin_acc.mean().item())
         print("Lowest bin average confidence per class: ", lower_bin_conf.mean().item())
+        print("Lowest bin over confidences classes: ", lower_bin_acc.mean().item())
+        print("Lowest bin under confidences classes:: ", lower_bin_conf.mean().item())
         print("Upper bin average accuracy per class: ", upper_bin_acc.mean().item())
         print("Upper bin average confidence per class: ", upper_bin_conf.mean().item())
-        print("Middle bins average accuracies per class: ", mid_bins_acc.mean(dim=1).item())
-        print("Middle bins average confidences per class: ", mid_bins_conf.mean(dim=1).item())
-        
+        print("Bins average accuracies per class: ", mid_bins_acc.mean(dim=1))
+        print("Bins average confidences per class: ", mid_bins_conf.mean(dim=1))
+        print("Bins over confidences classes count: ", counts_over.sum(dim=1))
+        print("Bins under confidences classes count: ", counts_under.sum(dim=1))
                               
         return over_ece_bins, under_ece_bins, self.bin_lowers
 
+# Calibration error scores in the form of loss metrics with explicit confidence
+class ConfECELoss(nn.Module):
+    '''
+    Compute ECE (Expected Calibration Error)
+    '''
+    def __init__(self, n_bins=15):
+        super(ConfECELoss, self).__init__()
+        bin_boundaries = torch.linspace(0, 1, n_bins + 1)
+        self.bin_lowers = bin_boundaries[:-1]
+        self.bin_uppers = bin_boundaries[1:]
+        self.n_bins = n_bins
+
+    def forward(self, logits, labels):
+        softmaxes = F.softmax(logits, dim=1)
+        confidences, predictions = torch.max(softmaxes, 1)
+        accuracies = predictions.eq(labels)
+
+        ece = torch.zeros(1, device=logits.device)
+        for bin_lower, bin_upper in zip(self.bin_lowers, self.bin_uppers):
+            # Calculated |confidence - accuracy| in each bin
+            in_bin = confidences.gt(bin_lower.item()) * confidences.le(bin_upper.item())
+            prop_in_bin = in_bin.float().mean()
+            if prop_in_bin.item() > 0:
+                accuracy_in_bin = accuracies[in_bin].float().mean()
+                avg_confidence_in_bin = confidences[in_bin].mean()
+                ece += torch.abs(avg_confidence_in_bin - accuracy_in_bin) * prop_in_bin
+                
+        return ece

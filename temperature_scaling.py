@@ -19,7 +19,7 @@ class ModelWithTemperature(nn.Module):
         NB: Output of the neural network should be the classification logits,
             NOT the softmax (or log softmax)!
     """
-    def __init__(self, model, log=True, const_temp=False):
+    def __init__(self, model, log=True, const_temp=False, bece=False):
         super(ModelWithTemperature, self).__init__()
         self.model = model
         self.temperature = 1.0
@@ -27,12 +27,15 @@ class ModelWithTemperature(nn.Module):
         self.const_temp = const_temp
         self.ece_list = []
         self.ece = 0.0
+        self.bece = bece
 
 
     def forward(self, input, const_temp=False):
         logits = self.model(input)
         if self.const_temp or const_temp:
             return self.temperature_scale(logits)
+        elif self.bece:
+            return self.bins_temperature_scale(logits)
         else:
             return self.class_temperature_scale(logits)
 
@@ -50,6 +53,13 @@ class ModelWithTemperature(nn.Module):
         """
         # Expand temperature to match the size of logits
         return logits / self.csece_temperature
+    
+    def bins_temperature_scale(self, logits):
+        """
+        Perform temperature scaling on logits
+        """
+        # Expand temperature to match the size of logits
+        return logits / self.bin
 
 
     def set_temperature(self,
@@ -259,6 +269,123 @@ class ModelWithTemperature(nn.Module):
             return self.temperature
         else:
             return self.temperature, self.csece_temperature
+        
+    def set_bins_temperature(self,
+                        valid_loader, iters=1,
+                        cross_validate='ece', init_temp=2.5, acc_check=False, n_bins=15):
+        """
+        Tune the tempearature of the model (using the validation set) with cross-validation on ECE or NLL
+        """
+        self.cuda()
+        self.model.eval()
+        nll_criterion = nn.CrossEntropyLoss().cuda()
+        ece_criterion = ECELoss().cuda()
+
+        # First: collect all the logits and labels for the validation set
+        logits_list = []
+        labels_list = []
+        with torch.no_grad():
+            for input, label in valid_loader:
+                input = input.cuda()
+                logits = self.model(input)
+                logits_list.append(logits)
+                labels_list.append(label)
+            logits = torch.cat(logits_list).cuda()
+            labels = torch.cat(labels_list).cuda()
+
+        # Calculate NLL and ECE before temperature scaling
+        before_temperature_nll = nll_criterion(logits, labels).item()
+        before_temperature_ece = ece_criterion(logits, labels).item()
+        if self.log:
+            print('Before temperature - NLL: %.3f, ECE: %.3f' % (before_temperature_nll, before_temperature_ece))
+
+        nll_val = 10 ** 7
+        ece_val = 10 ** 7
+        T_opt_nll = 1.0
+        T_opt_ece = 1.0
+        T_opt_bece = init_temp*torch.ones(n_bins).cuda()
+        T_bece = init_temp*torch.ones(n_bins).cuda()
+        self.bece_temperature = T_bece
+        self.temperature = init_temp
+        
+        self.ece_list.append(ece_criterion(self.temperature_scale(logits), labels).item())
+        _, accuracy, _, _, _ = test_classification_net_logits(logits, labels)
+        if acc_check:
+            _, temp_accuracy, _, _, _ = test_classification_net_logits(self.temperature_scale(logits), labels)
+            if temp_accuracy >= accuracy:
+                accuracy = temp_accuracy
+        
+        softmaxes = F.softmax(logits, dim=1)
+        confidences, predictions = torch.max(softmaxes, 1)
+        
+        steps_limit = 0.2
+        temp_steps = torch.linspace(-steps_limit, steps_limit, int((2 * steps_limit) / 0.1 + 1))
+        converged = False
+        prev_temperatures = self.bece_temperature.clone()
+        nll_val = 10 ** 7
+        ece_val = 10 ** 7
+        bece_val = 10 ** 7
+                
+        #for iter in range(iters):
+        while not converged:
+            self.bin = 0
+            for bin_lower, bin_upper in zip(self.bin_lowers, self.bin_uppers):
+                in_bin = confidences.gt(bin_lower.item()) * confidences.le(bin_upper.item())
+                prop_in_bin = in_bin.float().mean()
+                if prop_in_bin.item() > 0:
+                    init_temp_value = T_bece[self.bin].item()
+                    #T = 0.1
+                    """
+                    nll_val = 10 ** 7
+                    ece_val = 10 ** 7
+                    csece_val = 10 ** 7
+                    """
+                    #for i in range(100):
+                    for step in temp_steps:
+                        #T_csece[label] = T
+                        T_bece[self.bin] = init_temp_value + step
+                        self.bece_temperature = T_bece
+                        #self.temperature = T
+                        self.cuda()
+                        #after_temperature_nll = nll_criterion(self.temperature_scale(logits), labels).item()
+                        after_temperature_ece = ece_criterion(self.bins_temperature_scale(logits[in_bin]), labels).item()
+                        #after_temperature_ece_reg = ece_criterion(self.temperature_scale(logits), labels).item()
+                        if acc_check:
+                            _, temp_accuracy, _, _, _ = test_classification_net_logits(self.class_temperature_scale(logits), labels)
+                        
+                        """
+                        if nll_val > after_temperature_nll:
+                            T_opt_nll = T
+                            nll_val = after_temperature_nll
+                        
+
+                        if ece_val > after_temperature_ece_reg:
+                            T_opt_ece = T
+                            ece_val = after_temperature_ece_reg
+                        """
+
+                        if acc_check:
+                            if csece_val > after_temperature_ece and temp_accuracy >= accuracy:
+                                T_opt_csece[label] = T
+                                csece_val = after_temperature_ece
+                                accuracy = temp_accuracy
+                        else:
+                            if csece_val > after_temperature_ece:
+                                #T_opt_csece[label] = T
+                                T_opt_csece[label] = init_temp_value + step
+                                csece_val = after_temperature_ece
+                        #T += 0.1
+                    T_csece[label] = T_opt_csece[label]
+                self.bin += 1
+            self.csece_temperature = T_opt_csece
+            self.ece_list.append(ece_criterion(self.class_temperature_scale(logits), labels).item())
+            converged = torch.all(self.csece_temperature.eq(prev_temperatures))
+            prev_temperatures = self.csece_temperature.clone()
+            
+        self.bece_temperature = T_opt_bece
+        self.cuda()
+        
+        return self
         
 def temperature_scale2(logits, temperature):
     """
