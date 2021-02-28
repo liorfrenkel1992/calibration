@@ -516,8 +516,8 @@ class posnegECEbinsLoss(nn.Module):
         lower_bin_conf = torch.zeros(num_classes, device=logits.device)
         upper_bin_acc = torch.zeros(num_classes, device=logits.device)
         upper_bin_conf = torch.zeros(num_classes, device=logits.device)
-        mid_bin_acc = torch.zeros(num_classes, device=logits.device)
-        mid_bin_conf = torch.zeros(num_classes, device=logits.device)
+        mid_bins_acc = torch.zeros((self.n_bins, num_classes), device=logits.device)
+        mid_bins_conf = torch.zeros((self.n_bins, num_classes), device=logits.device)
         
         for i in range(num_classes):
             class_confidences = softmaxes[:, i]
@@ -537,9 +537,9 @@ class posnegECEbinsLoss(nn.Module):
                     if bin_upper == 1:
                         upper_bin_acc[i] += accuracy_in_bin
                         upper_bin_conf[i] += avg_confidence_in_bin
-                    if bin_lower == self.bin_lowers[int(self.n_bins / 2)]:
-                        mid_bin_acc[i] += accuracy_in_bin
-                        mid_bin_conf[i] += avg_confidence_in_bin
+                    #if bin_lower == self.bin_lowers[int(self.n_bins / 2)]:
+                    mid_bins_acc[bin, i] += accuracy_in_bin
+                    mid_bins_conf[bin, i] += avg_confidence_in_bin
                         
                     if avg_confidence_in_bin - accuracy_in_bin > 0:
                         over_ece_bins[bin] += torch.abs(avg_confidence_in_bin - accuracy_in_bin) * prop_in_bin
@@ -555,8 +555,9 @@ class posnegECEbinsLoss(nn.Module):
         print("Lowest bin average confidence per class: ", lower_bin_conf.mean().item())
         print("Upper bin average accuracy per class: ", upper_bin_acc.mean().item())
         print("Upper bin average confidence per class: ", upper_bin_conf.mean().item())
-        print("Middle bin average accuracy per class: ", mid_bin_acc.mean().item())
-        print("Middle bin average confidence per class: ", mid_bin_conf.mean().item())
+        print("Middle bins average accuracies per class: ", mid_bins_acc.mean(dim=1).item())
+        print("Middle bins average confidences per class: ", mid_bins_conf.mean(dim=1).item())
+        
                               
         return over_ece_bins, under_ece_bins, self.bin_lowers
 
