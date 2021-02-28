@@ -120,6 +120,8 @@ def parseArgs():
     parser.add_argument("--loss", type=str, default=trained_loss,
                         dest="trained_loss",
                         help='Trained loss(cross_entropy/focal_loss/focal_loss_adaptive/mmce/mmce_weighted/brier_score)')
+    parser.add_argument("-bins", action="store_true", dest="bins_temp",
+                        help="whether to calculate ECE for each bin separately")
 
     return parser.parse_args()
 
@@ -281,7 +283,10 @@ if __name__ == "__main__":
 
 
     scaled_model = ModelWithTemperature(net, args.log, const_temp=const_temp)
-    scaled_model.set_temperature(val_loader, temp_opt_iters, cross_validate=cross_validation_error, init_temp=init_temp, acc_check=acc_check)
+    if args.bins_temp:
+        scaled_model.set_bins_temperature(val_loader, temp_opt_iters, cross_validate=cross_validation_error, init_temp=init_temp, acc_check=acc_check)
+    else:
+        scaled_model.set_temperature(val_loader, temp_opt_iters, cross_validate=cross_validation_error, init_temp=init_temp, acc_check=acc_check)
     logits, labels = get_logits_labels(test_loader, scaled_model)
     ece = ece_criterion(logits, labels).item()
     
