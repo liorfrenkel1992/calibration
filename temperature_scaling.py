@@ -19,7 +19,7 @@ class ModelWithTemperature(nn.Module):
         NB: Output of the neural network should be the classification logits,
             NOT the softmax (or log softmax)!
     """
-    def __init__(self, model, log=True, const_temp=False, bins_temp=False):
+    def __init__(self, model, log=True, const_temp=False, bins_temp=False, n_bins=15, iters=1):
         super(ModelWithTemperature, self).__init__()
         self.model = model
         self.temperature = 1.0
@@ -28,14 +28,16 @@ class ModelWithTemperature(nn.Module):
         self.ece_list = []
         self.ece = 0.0
         self.bins_temp = bins_temp
+        self.n_bins = n_bins
+        self.iters = iters
 
 
-    def forward(self, input, const_temp=False):
+    def forward(self, input, const_temp=False, bins_temp=False):
         logits = self.model(input)
         if self.const_temp or const_temp:
             return self.temperature_scale(logits)
-        elif self.bece:
-            return self.bins_temperature_scale(logits)
+        elif bins_temp:
+            return self.bins_temperature_scale_test(logits, n_bins=self.n_bins)
         else:
             return self.class_temperature_scale(logits)
 
@@ -54,17 +56,35 @@ class ModelWithTemperature(nn.Module):
         # Expand temperature to match the size of logits
         return logits / self.csece_temperature
     
-    def bins_temperature_scale(self, logits):
+    def bins_temperature_scale_test(self, logits, n_bins=15):
         """
         Perform temperature scaling on logits
         """
+        softmaxes = F.softmax(logits, dim=1)
+        confidences, _ = torch.max(softmaxes, 1)
+        bin_boundaries = torch.linspace(0, 1, n_bins + 1)
+        bin_lowers = bin_boundaries[:-1]
+        bin_uppers = bin_boundaries[1:]
+        scaled_logits = logits.clone()
+        bin = 0
+        for bin_lower, bin_upper in zip(bin_lowers, bin_uppers):
+            in_bin = confidences.gt(bin_lower.item()) * confidences.le(bin_upper.item())
+            if any(in_bin):
+                scaled_logits[in_bin] = scaled_logits[in_bin] / self.bins_T[bin]
+            bin += 1
+        
         # Expand temperature to match the size of logits
-        return logits / self.bece_temperature
+        return scaled_logits
+    
+    def bins_temperature_scale(self, logits):
+        """
+        Perform temperature scaling on logits
+        """     
+        # Expand temperature to match the size of logits
+        return logits / torch.unsqueeze(self.bece_temperature, -1)
+    
 
-
-    def set_temperature(self,
-                        valid_loader, iters=1,
-                        cross_validate='ece', init_temp=2.5, acc_check=False):
+    def set_temperature(self, valid_loader, cross_validate='ece', init_temp=2.5, acc_check=False):
         """
         Tune the tempearature of the model (using the validation set) with cross-validation on ECE or NLL
         """
@@ -191,8 +211,8 @@ class ModelWithTemperature(nn.Module):
             nll_val = 10 ** 7
             ece_val = 10 ** 7
             csece_val = 10 ** 7
-                    
-            #for iter in range(iters):
+                 
+            #for iter in range(self.iters):
             while not converged:
                 for label in range(logits.size()[1]):
                     init_temp_value = T_csece[label].item()
@@ -272,9 +292,7 @@ class ModelWithTemperature(nn.Module):
         else:
             return self.temperature, self.csece_temperature
         
-    def set_bins_temperature(self,
-                        valid_loader, iters=1,
-                        cross_validate='ece', init_temp=2.5, acc_check=False, n_bins=15):
+    def set_bins_temperature(self, valid_loader, cross_validate='ece', init_temp=2.5, acc_check=False, n_bins=15):
         """
         Tune the tempearature of the model (using the validation set) with cross-validation on ECE or NLL
         """
@@ -301,6 +319,7 @@ class ModelWithTemperature(nn.Module):
         if self.log:
             print('Before temperature - NLL: %.3f, ECE: %.3f' % (before_temperature_nll, before_temperature_ece))
             
+        eps = 1e-6
         ece_val = 10 ** 7
         T_opt_ece = 1.0
         T = 0.1
@@ -322,10 +341,10 @@ class ModelWithTemperature(nn.Module):
             print('Optimal temperature: %.3f' % init_temp)
             print('After temperature - ECE: %.3f' % (after_temperature_ece))
 
-        T_opt_ece = 1.0
         T_opt_bece = init_temp*torch.ones(logits.shape[0]).cuda()
         T_bece = init_temp*torch.ones(logits.shape[0]).cuda()
-        self.bins_T = init_temp*torch.ones(n_bins)
+        self.bins_T = init_temp*torch.ones(n_bins).cuda()
+        #bins_T_opt = init_temp*torch.ones(n_bins).cuda()
         self.bece_temperature = T_bece
         
         self.ece_list.append(ece_criterion(self.temperature_scale(logits), labels).item())
@@ -339,44 +358,58 @@ class ModelWithTemperature(nn.Module):
         confidences, _ = torch.max(softmaxes, 1)
         
         steps_limit = 0.2
-        temp_steps = torch.linspace(-steps_limit, steps_limit, int((2 * steps_limit) / 0.1 + 1))
+        temp_steps = torch.linspace(-steps_limit, steps_limit, int((2 * steps_limit) / 0.1 + 1)).cuda()
         converged = False
         prev_temperatures = self.bece_temperature.clone()
+        #prev_temperatures = self.bins_T.clone()
         bece_val = 10 ** 7
+        
+        bin_boundaries = torch.linspace(0, 1, n_bins + 1)
+        bin_lowers = bin_boundaries[:-1]
+        bin_uppers = bin_boundaries[1:]
                 
+        self.iters = 0
         while not converged:
+            self.iters += 1
             bin = 0
-            for bin_lower, bin_upper in zip(self.bin_lowers, self.bin_uppers):
+            for bin_lower, bin_upper in zip(bin_lowers, bin_uppers):
                 in_bin = confidences.gt(bin_lower.item()) * confidences.le(bin_upper.item())
-                prop_in_bin = in_bin.float().mean()
-                if prop_in_bin.item() > 0:
+                #prop_in_bin = in_bin.float().mean()
+                if any(in_bin):
                     init_temp_value = T_bece[in_bin][0].item()
+                    #init_temp_value = self.bins_T[bin].item()
                     for step in temp_steps:
                         T_bece[in_bin] = init_temp_value + step
                         self.bece_temperature = T_bece
+                        #self.bins_T[bin] = init_temp_value + step
                         self.cuda()
                         after_temperature_ece = ece_criterion(self.bins_temperature_scale(logits), labels).item()
                         if acc_check:
                             _, temp_accuracy, _, _, _ = test_classification_net_logits(self.bins_temperature_scale(logits), labels)
 
                         if acc_check:
-                            if bece_val > after_temperature_ece and temp_accuracy >= accuracy:
+                            if bece_val > after_temperature_ece + eps and temp_accuracy >= accuracy:
                                 T_opt_bece[in_bin] = init_temp_value + step
+                                #bins_T_opt[bin] = init_temp_value + step
                                 bece_val = after_temperature_ece
                                 accuracy = temp_accuracy
                         else:
-                            if bece_val > after_temperature_ece:
+                            if bece_val > after_temperature_ece + eps:
                                 T_opt_bece[in_bin] = init_temp_value + step
+                                #bins_T_opt[bin] = init_temp_value + step
                                 bece_val = after_temperature_ece
-                    T_csece[in_bin] = T_opt_bece[in_bin]
-                    self.bins_T[bin] = T_opt_bece[in_bin][0].item()
+                    T_bece[in_bin] = T_opt_bece[in_bin]
+                    #self.bins_T[bin] = bins_T_opt[bin]
+                    self.bins_T[bin] = T_bece[in_bin][0].item()
                 bin += 1
             self.bece_temperature = T_opt_bece
+            #self.bins_T = bins_T_opt
             self.ece_list.append(ece_criterion(self.bins_temperature_scale(logits), labels).item())
             converged = torch.all(self.bece_temperature.eq(prev_temperatures))
             prev_temperatures = self.bece_temperature.clone()
             
         self.bece_temperature = T_opt_bece
+        #self.bins_T = bins_T_opt
         self.cuda()
         
         return self

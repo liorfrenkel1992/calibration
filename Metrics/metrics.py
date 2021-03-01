@@ -311,6 +311,181 @@ class ClassECELoss(nn.Module):
         return per_class_sce, classes_acc
     
     
+class ClassECELoss2(nn.Module):
+    '''
+    Compute per-Class ECE
+    '''
+    def __init__(self, n_bins=15):
+        super(ClassECELoss2, self).__init__()
+        bin_boundaries = torch.linspace(0, 1, n_bins + 1)
+        self.bin_lowers = bin_boundaries[:-1]
+        self.bin_uppers = bin_boundaries[1:]
+
+    def forward(self, logits, labels):
+        num_classes = int((torch.max(labels) + 1).item())
+        softmaxes = F.softmax(logits, dim=1)
+        confidences, choices = torch.max(softmaxes, 1)
+        per_class_sce = None
+        classes_acc = []
+
+        for i in range(num_classes):
+            class_confidences = confidences[labels == i]
+            accuracies_i = choices[labels == i].eq(i)
+            class_accuracy = torch.sum(accuracies_i).item() / torch.sum(labels.eq(i)).item()
+            class_sce = torch.zeros(1, device=logits.device)
+
+            for bin_lower, bin_upper in zip(self.bin_lowers, self.bin_uppers):
+                in_bin = class_confidences.gt(bin_lower.item()) * class_confidences.le(bin_upper.item())
+                prop_in_bin = in_bin.float().mean()
+                if prop_in_bin.item() > 0:
+                    accuracy_in_bin = accuracies_i[in_bin].float().mean()
+                    avg_confidence_in_bin = class_confidences[in_bin].mean()
+                    class_sce += torch.abs(avg_confidence_in_bin - accuracy_in_bin) * prop_in_bin
+
+            if (i == 0):
+                per_class_sce = class_sce
+            else:
+                per_class_sce = torch.cat((per_class_sce, class_sce), dim=0)
+            
+            classes_acc.append(class_accuracy)
+
+        return per_class_sce, classes_acc
+    
+class posnegECELoss2(nn.Module):
+    '''
+    Compute per-Class powsitiv and negative ECE
+    '''
+    def __init__(self, n_bins=15):
+        super(posnegECELoss2, self).__init__()
+        bin_boundaries = torch.linspace(0, 1, n_bins + 1)
+        self.bin_lowers = bin_boundaries[:-1]
+        self.bin_uppers = bin_boundaries[1:]
+
+    def forward(self, logits, labels):
+        num_classes = int((torch.max(labels) + 1).item())
+        softmaxes = F.softmax(logits, dim=1)
+        confidences, choices = torch.max(softmaxes, 1)
+        classes_acc = []
+        
+        counts_over = torch.zeros(num_classes)
+        counts_under = torch.zeros(num_classes)
+        bins_over = []
+        bins_under = []
+
+        for i in range(num_classes):
+            class_confidences = confidences[labels == i]
+            accuracies_i = choices[labels == i].eq(i)
+            class_accuracy = torch.sum(accuracies_i).item() / torch.sum(labels.eq(i)).item()
+            class_sce_pos = torch.zeros(1, device=logits.device)
+            class_sce_neg = torch.zeros(1, device=logits.device)
+
+            for bin_lower, bin_upper in zip(self.bin_lowers, self.bin_uppers):
+                in_bin = class_confidences.gt(bin_lower.item()) * class_confidences.le(bin_upper.item())
+                prop_in_bin = in_bin.float().mean()
+                if prop_in_bin.item() > 0:
+                    accuracy_in_bin = accuracies_i[in_bin].float().mean()
+                    avg_confidence_in_bin = class_confidences[in_bin].mean()
+                    if avg_confidence_in_bin - accuracy_in_bin > 0:
+                        bins_over.append(bin_lower)
+                        counts_over[i] += 1 
+                        class_sce_pos += torch.abs(avg_confidence_in_bin - accuracy_in_bin) * prop_in_bin
+                    else:
+                        bins_under.append(bin_lower)
+                        counts_under[i] += 1
+                        class_sce_neg += torch.abs(avg_confidence_in_bin - accuracy_in_bin) * prop_in_bin
+
+            if (i == 0):
+                per_class_sce_pos = class_sce_pos
+                per_class_sce_neg = class_sce_neg
+            else:
+                per_class_sce_pos = torch.cat((per_class_sce_pos, class_sce_pos), dim=0)
+                per_class_sce_neg = torch.cat((per_class_sce_neg, class_sce_neg), dim=0)
+                
+            classes_acc.append(class_accuracy)
+        print('total samples number: ', labels.shape[0])
+        print('over confidence counts sum: ', torch.sum(counts_over).item())
+        print('under confidence counts sum: ', torch.sum(counts_under).item())
+        print('over confidence bins: ', torch.mean(torch.FloatTensor(bins_over)).item())
+        print('under confidence bins: ', torch.mean(torch.FloatTensor(bins_under)).item())
+
+        return per_class_sce_pos, per_class_sce_neg, classes_acc
+    
+# Calibration error scores in the form of loss metrics
+class posnegECEbinsLoss2(nn.Module):
+    '''
+    Compute per-Class over-confidence and under-confidence ECE vs. bins
+    '''
+    def __init__(self, n_bins=15):
+        super(posnegECEbinsLoss2, self).__init__()
+        bin_boundaries = torch.linspace(0, 1, n_bins + 1)
+        self.bin_lowers = bin_boundaries[:-1]
+        self.bin_uppers = bin_boundaries[1:]
+        self.n_bins = n_bins
+
+    def forward(self, logits, labels):
+        num_classes = int((torch.max(labels) + 1).item())
+        softmaxes = F.softmax(logits, dim=1)
+        confidences, choices = torch.max(softmaxes, 1)
+        
+        counts_over = torch.zeros((self.n_bins, num_classes))
+        counts_under = torch.zeros((self.n_bins, num_classes))
+        bins_over = []
+        bins_under = []
+        over_ece_bins = torch.zeros(self.bin_lowers.shape, device=logits.device)
+        under_ece_bins = torch.zeros(self.bin_lowers.shape, device=logits.device)
+        lower_bin_acc = torch.zeros(num_classes, device=logits.device)
+        lower_bin_conf = torch.zeros(num_classes, device=logits.device)
+        upper_bin_acc = torch.zeros(num_classes, device=logits.device)
+        upper_bin_conf = torch.zeros(num_classes, device=logits.device)
+        mid_bins_acc = torch.zeros((self.n_bins, num_classes), device=logits.device)
+        mid_bins_conf = torch.zeros((self.n_bins, num_classes), device=logits.device)
+        
+        for i in range(num_classes):
+            class_confidences = confidences[labels == i]
+            accuracies_i = choices[labels == i].eq(i)
+            bin = 0
+
+            for bin_lower, bin_upper in zip(self.bin_lowers, self.bin_uppers):
+                in_bin = class_confidences.gt(bin_lower.item()) * class_confidences.le(bin_upper.item())
+                prop_in_bin = in_bin.float().mean()
+                if prop_in_bin.item() > 0:
+                    accuracy_in_bin = accuracies_i[in_bin].float().mean()
+                    avg_confidence_in_bin = class_confidences[in_bin].mean()
+                    
+                    if bin_lower == 0:
+                        lower_bin_acc[i] += accuracy_in_bin
+                        lower_bin_conf[i] += avg_confidence_in_bin
+                    if bin_upper == 1:
+                        upper_bin_acc[i] += accuracy_in_bin
+                        upper_bin_conf[i] += avg_confidence_in_bin
+                    #if bin_lower == self.bin_lowers[int(self.n_bins / 2)]:
+                    mid_bins_acc[bin, i] += accuracy_in_bin
+                    mid_bins_conf[bin, i] += avg_confidence_in_bin
+                        
+                    if avg_confidence_in_bin - accuracy_in_bin > 0:
+                        over_ece_bins[bin] += torch.abs(avg_confidence_in_bin - accuracy_in_bin) * prop_in_bin
+                        bins_over.append(bin_lower)
+                        counts_over[bin, i] += 1 
+                    else:
+                        under_ece_bins[bin] += torch.abs(avg_confidence_in_bin - accuracy_in_bin) * prop_in_bin
+                        bins_under.append(bin_lower)
+                        counts_under[bin, i] += 1
+                bin += 1
+                
+        print("Lowest bin average accuracy per class: ", lower_bin_acc.mean().item())
+        print("Lowest bin average confidence per class: ", lower_bin_conf.mean().item())
+        print("Lowest bin over confidences classes: ", lower_bin_acc.mean().item())
+        print("Lowest bin under confidences classes:: ", lower_bin_conf.mean().item())
+        print("Upper bin average accuracy per class: ", upper_bin_acc.mean().item())
+        print("Upper bin average confidence per class: ", upper_bin_conf.mean().item())
+        print("Bins average accuracies per class: ", mid_bins_acc.mean(dim=1))
+        print("Bins average confidences per class: ", mid_bins_conf.mean(dim=1))
+        print("Bins over confidences classes count: ", counts_over.sum(dim=1))
+        print("Bins under confidences classes count: ", counts_under.sum(dim=1))
+                              
+        return over_ece_bins, under_ece_bins, self.bin_lowers
+    
+    
 # Calibration error scores in the form of loss metrics
 class posnegECELoss(nn.Module):
     '''
@@ -373,6 +548,7 @@ class posnegECELoss(nn.Module):
         print('under confidence bins: ', torch.mean(torch.FloatTensor(bins_under)).item())
 
         return per_class_sce_pos, per_class_sce_neg, classes_acc
+    
     
 # Calibration error scores in the form of loss metrics
 class binsECELoss(nn.Module):

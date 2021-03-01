@@ -126,7 +126,7 @@ def pos_neg_ece_plot(acc, csece_pos, csece_neg, save_plots_loc, dataset, model, 
     plt.xticks(fontsize=10)
     plt.ylabel('ECE', fontsize=12)
     plt.yticks(fontsize=10)
-    plt.ylim(0, 0.01)
+    #plt.ylim(0, 0.01)
     if const_temp:
         plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'pos_ece_acc_{}_scaling_{}_{}_{}_const_temp.pdf'.format(scaling_related, dataset, model, trained_loss)), dpi=40)
     if acc_check:
@@ -141,7 +141,7 @@ def pos_neg_ece_plot(acc, csece_pos, csece_neg, save_plots_loc, dataset, model, 
     plt.xticks(fontsize=10)
     plt.ylabel('ECE', fontsize=12)
     plt.yticks(fontsize=10)
-    plt.ylim(0, 0.01)
+    #plt.ylim(0, 0.01)
     if const_temp:
         plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'neg_ece_acc_{}_scaling_{}_{}_{}_const_temp.pdf'.format(scaling_related, dataset, model, trained_loss)), dpi=40)
     if acc_check:
@@ -157,7 +157,7 @@ def ece_acc_plot(acc, csece, save_plots_loc, dataset, model, trained_loss, acc_c
     plt.xticks(fontsize=10)
     plt.ylabel('ECE', fontsize=12)
     plt.yticks(fontsize=10)
-    plt.ylim(0, 0.01)
+    #plt.ylim(0, 0.01)
     if const_temp:
         plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'ece_acc_{}_scaling_{}_{}_{}_const_temp.pdf'.format(scaling_related, dataset, model, trained_loss)), dpi=40)
     else:
@@ -173,10 +173,10 @@ def ece_acc_plot(acc, csece, save_plots_loc, dataset, model, trained_loss, acc_c
                 plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'ece_acc_{}_scaling_{}_{}_{}.pdf'.format(scaling_related, dataset, model, trained_loss)), dpi=40)
     plt.close()
     
-def ece_iters_plot(iters, scaled_model, save_plots_loc, dataset, model, trained_loss, init_temp, acc_check=False):
+def ece_iters_plot(scaled_model, save_plots_loc, dataset, model, trained_loss, init_temp, acc_check=False):
     plt.figure()
-    plt.plot(range(iters + 1), scaled_model.ece_list)
-    plt.plot(range(iters + 1), scaled_model.ece*torch.ones(iters + 1))
+    plt.plot(range(scaled_model.iters + 1), scaled_model.ece_list)
+    plt.plot(range(scaled_model.iters + 1), scaled_model.ece*torch.ones((scaled_model.iters + 1)))
     plt.legend(('class-based temp scaling', 'single temp scaling'), fontsize=10)
     plt.xlabel('iterations', fontsize=10)
     plt.xticks(fontsize=10)

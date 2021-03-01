@@ -22,7 +22,7 @@ from Net.densenet import densenet121
 
 # Import metrics to compute
 from Metrics.metrics import test_classification_net_logits
-from Metrics.metrics import ECELoss, AdaptiveECELoss, ClasswiseECELoss, ClassECELoss, posnegECELoss, binsECELoss, diffECELoss, posnegECEbinsLoss
+from Metrics.metrics import ECELoss, AdaptiveECELoss, ClasswiseECELoss, ClassECELoss, posnegECELoss, binsECELoss, diffECELoss, posnegECEbinsLoss, ClassECELoss2, posnegECELoss2, posnegECEbinsLoss2
 from Metrics.plots import reliability_plot, pos_neg_ece_plot, ece_acc_plot, ece_iters_plot, temp_acc_plot, diff_ece_plot, bins_over_conf_plot, pos_neg_ece_bins_plot
 
 # Import temperature scaling and NLL utilities
@@ -126,14 +126,14 @@ def parseArgs():
     return parser.parse_args()
 
 
-def get_logits_labels_const(data_loader, net, const_temp=False):
+def get_logits_labels_const(data_loader, net, const_temp=False, bins_temp=False):
     logits_list = []
     labels_list = []
     net.eval()
     with torch.no_grad():
         for data, label in data_loader:
             data = data.cuda()
-            logits = net(data, const_temp=const_temp)
+            logits = net(data, const_temp=const_temp, bins_temp=bins_temp)
             logits_list.append(logits)
             labels_list.append(label)
         logits = torch.cat(logits_list).cuda()
@@ -231,6 +231,9 @@ if __name__ == "__main__":
     bins_csece_criterion = binsECELoss().cuda()
     diff_ece_criterion = diffECELoss().cuda()
     posneg_bins_ece_criterion = posnegECEbinsLoss().cuda()
+    csece_criterion2 = ClassECELoss2().cuda()
+    posneg_csece_criterion2 = posnegECELoss2().cuda()
+    posneg_bins_ece_criterion2 = posnegECEbinsLoss2().cuda()
 
     logits, labels = get_logits_labels(test_loader, net)
     conf_matrix, p_accuracy, _, predictions, confidences = test_classification_net_logits(logits, labels)
@@ -241,11 +244,15 @@ if __name__ == "__main__":
     p_ece = ece_criterion(logits, labels).item()
     p_adaece = adaece_criterion(logits, labels).item()
     p_cece = cece_criterion(logits, labels).item()
+    p_csece2, p_acc2 = csece_criterion2(logits, labels)
     p_csece, p_acc = csece_criterion(logits, labels)
     
     if pos_neg_ece:
         p_csece_high, p_csece_low, _ = bins_csece_criterion(logits, labels)
         p_csece_pos, p_csece_neg, p_acc = posneg_csece_criterion(logits, labels)
+        p_csece_pos2, p_csece_neg2, p_acc2 = posneg_csece_criterion2(logits, labels)
+        p_bins_ece_over2, p_bins_ece_under2, bins_vec2 = posneg_bins_ece_criterion2(logits, labels)
+        p_bins_ece_over_after2, p_bins_ece_under_after2, bins_vec2 = posneg_bins_ece_criterion2(logits / init_temp, labels)
         p_bins_ece_over, p_bins_ece_under, bins_vec = posneg_bins_ece_criterion(logits, labels)
         p_bins_ece_over_after, p_bins_ece_under_after, bins_vec = posneg_bins_ece_criterion(logits / init_temp, labels)
     p_nll = nll_criterion(logits, labels).item()
@@ -258,15 +265,22 @@ if __name__ == "__main__":
         # Over and under confidence ece vs. bins
         pos_neg_ece_bins_plot(bins_vec, p_bins_ece_over, p_bins_ece_under, p_bins_ece_over_after, p_bins_ece_under_after, save_plots_loc, dataset,
                               args.model, trained_loss, acc_check=acc_check, scaling_related='before_after')
+        # Over and under confidence ece vs. bins2
+        pos_neg_ece_bins_plot(bins_vec2, p_bins_ece_over2, p_bins_ece_under2, p_bins_ece_over_after2, p_bins_ece_under_after2, save_plots_loc, dataset,
+                              args.model, trained_loss, acc_check=acc_check, scaling_related='before_after2')
     
     if create_plots:
         if pos_neg_ece:
             # pos and neg ECE vs. accuracy per class
             pos_neg_ece_plot(p_acc, p_csece_pos, p_csece_neg, save_plots_loc, dataset, args.model, trained_loss, acc_check=acc_check, scaling_related='before')
+            # pos and neg ECE vs. accuracy per class2
+            pos_neg_ece_plot(p_acc2, p_csece_pos2, p_csece_neg2, save_plots_loc, dataset, args.model, trained_loss, acc_check=acc_check, scaling_related='before2')
             # high and low bins ECE vs. accuracy per class
             pos_neg_ece_plot(p_acc, p_csece_high, p_csece_low, save_plots_loc, dataset, args.model, trained_loss, acc_check=acc_check, scaling_related='before_bins')
         # ECE vs. accuracy per class
         ece_acc_plot(p_acc, p_csece, save_plots_loc, dataset, args.model, trained_loss, acc_check=acc_check, scaling_related='before')
+        # ECE vs. accuracy per class2
+        ece_acc_plot(p_acc2, p_csece2, save_plots_loc, dataset, args.model, trained_loss, acc_check=acc_check, scaling_related='before2')
         # Difference between calibration and accuracy (over-confience) over bins
         bins_over_conf_plot(bins, over_conf, save_plots_loc, dataset, args.model, trained_loss, scaling_related='before')
     
@@ -282,12 +296,13 @@ if __name__ == "__main__":
         print ('Classes accuracies: ' + str(p_acc))
 
 
-    scaled_model = ModelWithTemperature(net, args.log, const_temp=const_temp)
+    scaled_model = ModelWithTemperature(net, args.log, const_temp=const_temp, bins_temp=args.bins_temp, n_bins=num_bins, iters=temp_opt_iters)
     if args.bins_temp:
-        scaled_model.set_bins_temperature(val_loader, temp_opt_iters, cross_validate=cross_validation_error, init_temp=init_temp, acc_check=acc_check)
+        scaled_model.set_bins_temperature(val_loader, cross_validate=cross_validation_error, init_temp=init_temp, acc_check=acc_check)
+        logits, labels = get_logits_labels_const(test_loader, scaled_model, bins_temp=True)
     else:
-        scaled_model.set_temperature(val_loader, temp_opt_iters, cross_validate=cross_validation_error, init_temp=init_temp, acc_check=acc_check)
-    logits, labels = get_logits_labels(test_loader, scaled_model)
+        scaled_model.set_temperature(val_loader, cross_validate=cross_validation_error, init_temp=init_temp, acc_check=acc_check)
+        logits, labels = get_logits_labels(test_loader, scaled_model)
     ece = ece_criterion(logits, labels).item()
     
     # For const temp scaling
@@ -299,7 +314,7 @@ if __name__ == "__main__":
     else:
         T_opt, T_csece_opt = scaled_model.get_temperature()
         if create_plots:
-            ece_iters_plot(temp_opt_iters, scaled_model, save_plots_loc, dataset, args.model, trained_loss, init_temp, acc_check)
+            ece_iters_plot(scaled_model, save_plots_loc, dataset, args.model, trained_loss, init_temp, acc_check)
             
     conf_matrix, accuracy, _, predictions, confidences = test_classification_net_logits(logits, labels)
     if create_plots:
@@ -333,10 +348,11 @@ if __name__ == "__main__":
                              const_temp=const_temp)
         # ECE vs. accuracy per class
         ece_acc_plot(accuracies, csece, save_plots_loc, dataset, args.model, trained_loss, acc_check=acc_check, scaling_related='after', const_temp=const_temp)
+        """
         if not const_temp:
             # Temperature vs. accuracy per class
             temp_acc_plot(accuracies, T_csece_opt, T_opt, save_plots_loc, dataset, args.model, trained_loss, acc_check=acc_check, const_temp=const_temp)
-        """
+        
         # ECE vs. accuracy per class - Difference between before and after temperature scaling
         # Class-based temperature scaling diff
         diff_ece_plot(accuracies, csece, p_csece, save_plots_loc, dataset, args.model, trained_loss, acc_check=acc_check, scaling_type='class_based')
