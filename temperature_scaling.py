@@ -67,11 +67,12 @@ class ModelWithTemperature(nn.Module):
         bin_uppers = bin_boundaries[1:]
         scaled_logits = logits.clone()
         bin = 0
-        for bin_lower, bin_upper in zip(bin_lowers, bin_uppers):
-            in_bin = confidences.gt(bin_lower.item()) * confidences.le(bin_upper.item())
-            if any(in_bin):
-                scaled_logits[in_bin] = scaled_logits[in_bin] / self.bins_T[bin]
-            bin += 1
+        for i in self.iters:
+            for bin_lower, bin_upper in zip(bin_lowers, bin_uppers):
+                in_bin = confidences.gt(bin_lower.item()) * confidences.le(bin_upper.item())
+                if any(in_bin):
+                    scaled_logits[in_bin] = scaled_logits[in_bin] / self.bins_T[bin, i]
+                bin += 1
         
         # Expand temperature to match the size of logits
         return scaled_logits
@@ -413,7 +414,114 @@ class ModelWithTemperature(nn.Module):
         self.cuda()
         
         return self
+    
+    def set_bins_temperature2(self, valid_loader, cross_validate='ece', init_temp=2.5, acc_check=False, n_bins=15):
+        """
+        Tune the tempearature of the model (using the validation set) with cross-validation on ECE or NLL
+        """
+        self.cuda()
+        self.model.eval()
+        nll_criterion = nn.CrossEntropyLoss().cuda()
+        ece_criterion = ECELoss().cuda()
+
+        # First: collect all the logits and labels for the validation set
+        logits_list = []
+        labels_list = []
+        with torch.no_grad():
+            for input, label in valid_loader:
+                input = input.cuda()
+                logits = self.model(input)
+                logits_list.append(logits)
+                labels_list.append(label)
+            logits = torch.cat(logits_list).cuda()
+            labels = torch.cat(labels_list).cuda()
+
+        # Calculate NLL and ECE before temperature scaling
+        before_temperature_nll = nll_criterion(logits, labels).item()
+        before_temperature_ece = ece_criterion(logits, labels).item()
+        if self.log:
+            print('Before temperature - NLL: %.3f, ECE: %.3f' % (before_temperature_nll, before_temperature_ece))
+            
+        eps = 1e-6
+        ece_val = 10 ** 7
+        T_opt_ece = 1.0
+        T = 0.1
+        for i in range(100):
+            self.temperature = T
+            self.cuda()
+            after_temperature_ece = ece_criterion(self.temperature_scale(logits), labels).item()
+            if ece_val > after_temperature_ece:
+                T_opt_ece = T
+                ece_val = after_temperature_ece
+            T += 0.1
+
+        init_temp = T_opt_ece
+        self.temperature = T_opt_ece
         
+        # Calculate NLL and ECE after temperature scaling
+        after_temperature_ece = ece_criterion(self.temperature_scale(logits), labels).item()
+        if self.log:
+            print('Optimal temperature: %.3f' % init_temp)
+            print('After temperature - ECE: %.3f' % (after_temperature_ece))
+
+        T_opt_bece = init_temp*torch.ones(logits.shape[0]).cuda()
+        T_bece = init_temp*torch.ones(logits.shape[0]).cuda()
+        self.bins_T = init_temp*torch.ones((n_bins, self.iters)).cuda()
+        self.bece_temperature = T_bece
+        
+        self.ece_list.append(ece_criterion(self.temperature_scale(logits), labels).item())
+                
+        softmaxes = F.softmax(logits, dim=1)
+        confidences, _ = torch.max(softmaxes, 1)
+        
+        steps_limit = 0.2
+        temp_steps = torch.linspace(-steps_limit, steps_limit, int((2 * steps_limit) / 0.1 + 1)).cuda()
+        bece_val = 10 ** 7
+        
+        bin_boundaries = torch.linspace(0, 1, n_bins + 1)
+        bin_lowers = bin_boundaries[:-1]
+        bin_uppers = bin_boundaries[1:]
+                
+        for i in range(self.iters):
+            print('iter num ', i+1)
+            bin = 0
+            for bin_lower, bin_upper in zip(bin_lowers, bin_uppers):
+                in_bin = confidences.gt(bin_lower.item()) * confidences.le(bin_upper.item())
+                if any(in_bin):
+                    init_temp_value = T_bece[in_bin][0].item()
+                    for step in temp_steps:
+                        T_bece[in_bin] = init_temp_value + step
+                        self.cuda()
+                        self.bece_temperature = T_bece
+                        
+                        softmaxes_temp = F.softmax(logits[in_bin] / T_bece[in_bin], dim=1)
+                        confidences_temp, predictions_temp = torch.max(softmaxes_temp, 1)
+                        accuracies_temp = predictions_temp.eq(labels[in_bin])
+                        accuracy_in_bin = accuracies_temp.float().mean()
+                        avg_confidence_in_bin = confidences_temp.mean()
+                        after_temperature = torch.abs(accuracy_in_bin - avg_confidence_in_bin)
+                        
+                        if bece_val > after_temperature + eps:
+                            T_opt_bece[in_bin] = init_temp_value + step
+                            bece_val = after_temperature
+                        
+                    T_bece[in_bin] = T_opt_bece[in_bin]
+                    self.bins_T[bin, i] = T_bece[in_bin][0].item()
+                bin += 1
+            
+            self.bece_temperature = T_opt_bece
+            self.ece_list.append(ece_criterion(self.bins_temperature_scale(logits), labels).item())
+            
+            logits = logits / self.bece_temperature
+            softmaxes = F.softmax(logits, dim=1)
+            confidences, _ = torch.max(softmaxes, 1)
+            
+        self.bece_temperature = T_opt_bece
+        self.cuda()
+        
+        return self
+    
+            
 def temperature_scale2(logits, temperature):
     """
     Perform temperature scaling on logits
