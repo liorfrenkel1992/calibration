@@ -61,7 +61,7 @@ def parseArgs():
     save_loc = './'
     save_plots_loc = './'
     saved_model_name = 'resnet50_cross_entropy_350.model'
-    num_bins = 15
+    num_bins = 25
     model_name = None
     train_batch_size = 128
     test_batch_size = 128
@@ -138,6 +138,8 @@ def get_logits_labels_const(data_loader, net, const_temp=False, bins_temp=False)
             labels_list.append(label)
         logits = torch.cat(logits_list).cuda()
         labels = torch.cat(labels_list).cuda()
+        
+        
     return logits, labels
 
 def get_logits_labels(data_loader, net):

@@ -66,13 +66,15 @@ class ModelWithTemperature(nn.Module):
         bin_lowers = bin_boundaries[:-1]
         bin_uppers = bin_boundaries[1:]
         scaled_logits = logits.clone()
-        #for i in range(self.iters):
-        bin = 0
-        for bin_lower, bin_upper in zip(bin_lowers, bin_uppers):
-            in_bin = confidences.gt(bin_lower.item()) * confidences.le(bin_upper.item())
-            if any(in_bin):
-                scaled_logits[in_bin] = scaled_logits[in_bin] / torch.prod(self.bins_T[bin])
-            bin += 1
+        for i in range(self.iters):
+            bin = 0
+            for bin_lower, bin_upper in zip(bin_lowers, bin_uppers):
+                in_bin = confidences.gt(bin_lower.item()) * confidences.le(bin_upper.item())
+                if any(in_bin):
+                    scaled_logits[in_bin] = scaled_logits[in_bin] / self.bins_T[bin, i]
+                bin += 1
+            softmaxes = F.softmax(scaled_logits, dim=1)
+            confidences, _ = torch.max(softmaxes, 1)
         
         return scaled_logits
     
@@ -414,7 +416,7 @@ class ModelWithTemperature(nn.Module):
         
         return self
     
-    def set_bins_temperature2(self, valid_loader, cross_validate='ece', init_temp=2.5, acc_check=False, n_bins=15, top_temp=10):
+    def set_bins_temperature2(self, valid_loader, cross_validate='ece', init_temp=2.5, acc_check=False, top_temp=10):
         """
         Tune the tempearature of the model (using the validation set) with cross-validation on ECE or NLL
         """
@@ -441,6 +443,7 @@ class ModelWithTemperature(nn.Module):
         if self.log:
             print('Before temperature - NLL: %.3f, ECE: %.3f' % (before_temperature_nll, before_temperature_ece))
             
+        n_bins = self.n_bins
         eps = 1e-6
         ece_val = 10 ** 7
         T_opt_ece = 1.0
@@ -483,11 +486,13 @@ class ModelWithTemperature(nn.Module):
         bin_uppers = bin_boundaries[1:]
                         
         for i in range(self.iters):
+            ece_in_iter = 0
             print('iter num ', i+1)
             bin = 0
             for bin_lower, bin_upper in zip(bin_lowers, bin_uppers):
                 bece_val = 10 ** 7
                 in_bin = confidences.gt(bin_lower.item()) * confidences.le(bin_upper.item())
+                prop_in_bin = in_bin.float().mean()
                 if any(in_bin):
                     init_temp_value = T_bece[in_bin][0].item()
                     T = 0.1
@@ -505,6 +510,10 @@ class ModelWithTemperature(nn.Module):
                         accuracy_in_bin = accuracies_temp.float().mean()
                         if accuracy_in_bin == 0:
                             T_opt_bece[in_bin] = top_temp
+                            softmaxes_temp = F.softmax(logits[in_bin] / top_temp, dim=1)
+                            confidences_temp, _ = torch.max(softmaxes_temp, 1)
+                            avg_confidence_in_bin = confidences_temp.mean()
+                            bece_val = torch.abs(accuracy_in_bin - avg_confidence_in_bin)
                             break
                         avg_confidence_in_bin = confidences_temp.mean()
                         after_temperature = torch.abs(accuracy_in_bin - avg_confidence_in_bin)
@@ -516,8 +525,14 @@ class ModelWithTemperature(nn.Module):
                         T += 0.1
                         
                     T_bece[in_bin] = T_opt_bece[in_bin]
-                    self.bins_T[bin, i] = T_bece[in_bin][0].item()
+                    self.bins_T[bin, i] = T_opt_bece[in_bin][0].item()
+                    
+                    samples = T_bece[in_bin].shape[0]
+                    ece_in_iter += prop_in_bin * bece_val
+                    print('ece in bin ', bin+1, ' :', (prop_in_bin * bece_val).item(), ', number of samples: ', samples)
                 bin += 1
+            
+            print('ece in iter ', i+1, ' :', ece_in_iter.item())
             
             self.bece_temperature = T_opt_bece
             current_ece = ece_criterion(self.bins_temperature_scale(logits), labels).item()
