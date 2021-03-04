@@ -16,7 +16,7 @@ from Metrics.metrics import ECELoss
 from Metrics.metrics2 import ECE, softmax
 
 # Import temperature scaling and NLL utilities
-from temperature_scaling import set_temperature2, temperature_scale2, class_temperature_scale2
+from temperature_scaling import set_temperature2, temperature_scale2, class_temperature_scale2, set_temperature3, bins_temperature_scale_test3
 
 # Import unpickling logits and labels
 from evaluate_scripts.unpickle_probs import unpickle_probs
@@ -89,6 +89,8 @@ def parseArgs():
     parser.add_argument("--logits_file", type=str, default=logits_file,
                         dest="logits_file",
                         help='File of saved logits')
+    parser.add_argument("-bins", action="store_true", dest="bins_temp",
+                        help="whether to calculate ECE for each bin separately")
 
     return parser.parse_args()
 
@@ -151,24 +153,37 @@ if __name__ == "__main__":
         print ('Pre-scaling test ECE: ' + str(p_ece))
         print ('Pre-scaling test accuracy: ' + str(p_acc))
 
-    if const_temp:
-        temperature = set_temperature2(logits_val, labels_val, temp_opt_iters, cross_validate=cross_validation_error,
-                                       init_temp=init_temp, acc_check=acc_check, const_temp=const_temp, log=args.log, num_bins=num_bins)
-    else:                              
-        csece_temperature, single_temp = set_temperature2(logits_val, labels_val, temp_opt_iters, cross_validate=cross_validation_error,
-                                                          init_temp=init_temp, acc_check=acc_check, const_temp=const_temp, log=args.log, num_bins=num_bins)
+    if args.bins_temp:
+        if const_temp:
+            temperature = set_temperature3(logits_val, labels_val, temp_opt_iters, cross_validate=cross_validation_error,
+                                        init_temp=init_temp, acc_check=acc_check, const_temp=const_temp, log=args.log, num_bins=num_bins, top_temp=10)
+        else:                              
+            bins_T, single_temp = set_temperature3(logits_val, labels_val, temp_opt_iters, cross_validate=cross_validation_error,
+                                                            init_temp=init_temp, acc_check=acc_check, const_temp=const_temp, log=args.log, num_bins=num_bins, top_temp=10)
+        
+    else:    
+        if const_temp:
+            temperature = set_temperature2(logits_val, labels_val, temp_opt_iters, cross_validate=cross_validation_error,
+                                        init_temp=init_temp, acc_check=acc_check, const_temp=const_temp, log=args.log, num_bins=num_bins)
+        else:                              
+            csece_temperature, single_temp = set_temperature2(logits_val, labels_val, temp_opt_iters, cross_validate=cross_validation_error,
+                                                            init_temp=init_temp, acc_check=acc_check, const_temp=const_temp, log=args.log, num_bins=num_bins)
+    
     """
     softmaxs = softmax(class_temperature_scale2(logits_test, csece_temperature))
     preds = np.argmax(softmaxs, axis=1)
     confs = np.max(softmaxs, axis=1)
     ece = ECE(confs, preds, labels_test, bin_size = 1/num_bins)
     """
-    ece = ece_criterion(class_temperature_scale2(logits_test, csece_temperature), labels_test).item()
+    if args.bins_temp:
+        ece = ece_criterion(bins_temperature_scale_test3(logits_test, bins_T, args.temp_opt_iters, num_bins), labels_test).item()
+    else:
+        ece = ece_criterion(class_temperature_scale2(logits_test, csece_temperature), labels_test).item()
     ece_single = ece_criterion(temperature_scale2(logits_test, single_temp), labels_test).item()
-    _, acc, _, _, _ = test_classification_net_logits(class_temperature_scale2(logits_test, csece_temperature), labels_test)
+    #_, acc, _, _, _ = test_classification_net_logits(class_temperature_scale2(logits_test, csece_temperature), labels_test)
     
     if args.log:
         print ('Post-scaling ECE (Class-based temp scaling): ' + str(ece))
         print ('Post-scaling ECE (Single temp scaling): ' + str(ece_single))
-        print ('Post-scaling accuracy: ' + str(acc))
+        #print ('Post-scaling accuracy: ' + str(acc))
         
