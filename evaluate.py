@@ -298,7 +298,7 @@ if __name__ == "__main__":
 
     scaled_model = ModelWithTemperature(net, args.log, const_temp=const_temp, bins_temp=args.bins_temp, n_bins=num_bins, iters=temp_opt_iters)
     if args.bins_temp:
-        scaled_model.set_bins_temperature2(val_loader, cross_validate=cross_validation_error, init_temp=init_temp, acc_check=acc_check)
+        scaled_model.set_bins_temperature2(val_loader, cross_validate=cross_validation_error, init_temp=init_temp, acc_check=acc_check, top_temp=10)
         logits, labels = get_logits_labels_const(test_loader, scaled_model, bins_temp=True)
     else:
         scaled_model.set_temperature(val_loader, cross_validate=cross_validation_error, init_temp=init_temp, acc_check=acc_check)

@@ -692,8 +692,8 @@ class posnegECEbinsLoss(nn.Module):
         softmaxes = F.softmax(logits, dim=1)
         per_class_sce = None
         
-        counts_over = torch.zeros((self.n_bins, num_classes))
-        counts_under = torch.zeros((self.n_bins, num_classes))
+        counts_over = torch.zeros((self.n_bins, num_classes), device=logits.device)
+        counts_under = torch.zeros((self.n_bins, num_classes), device=logits.device)
         bins_over = []
         bins_under = []
         over_ece_bins = torch.zeros(self.bin_lowers.shape, device=logits.device)
@@ -748,6 +748,9 @@ class posnegECEbinsLoss(nn.Module):
         print("Bins over confidences classes count: ", counts_over.sum(dim=1))
         print("Bins under confidences classes count: ", counts_under.sum(dim=1))
                               
+        over_ece_bins /= counts_over.sum(dim=1)
+        under_ece_bins /= counts_under.sum(dim=1)
+        
         return over_ece_bins, under_ece_bins, self.bin_lowers
 
 # Calibration error scores in the form of loss metrics with explicit confidence
