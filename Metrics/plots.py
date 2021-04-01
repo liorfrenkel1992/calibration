@@ -226,3 +226,22 @@ def bins_over_conf_plot(bins, diff, save_plots_loc, dataset, model, trained_loss
     plt.ylabel('confidence - accuracy', fontsize=10)
     plt.yticks(fontsize=10)
     plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'over_conf_bins_{}_scaling_{}_{}_{}.pdf'.format(scaling_related, dataset, model, trained_loss)), dpi=40)
+
+def temp_bins_plot(bins_T, save_plots_loc, dataset, model, trained_loss, acc_check=False, const_temp=False, version=1):
+    bin_boundaries = torch.linspace(0, 1, bins_T.shape[0] + 1)
+    bin_lowers = bin_boundaries[:-1]
+    plt.figure()
+    for i in range(bins_T.shape[1]):
+        plt.plot(bin_lowers, bins_T[:, i].cpu(), label='iter number {}'.format(i+1))
+    plt.xlabel('Bins', fontsize=10)
+    plt.xticks(fontsize=10)
+    plt.ylabel('Temperature', fontsize=10)
+    plt.yticks(fontsize=10)
+    plt.legend(fontsize=10)
+    if const_temp:
+        plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'temp_bins_{}_iters_{}_{}_{}_const_temp_ver_{}.pdf'.format(bins_T.shape[1], dataset, model, trained_loss, version)), dpi=40)
+    else:
+        if acc_check:
+            plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'temp_bins_{}_iters_{}_{}_{}_acc_ver_{}.pdf'.format(bins_T.shape[1], dataset, model, trained_loss, version)), dpi=40)
+        else:
+            plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'temp_bins_{}_iters_{}_{}_{}_ver_{}.pdf'.format(bins_T.shape[1], dataset, model, trained_loss, version)), dpi=40)

@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 from Metrics.metrics import test_classification_net_logits
 from Metrics.metrics import ECELoss
 from Metrics.metrics2 import ECE, softmax
+from Metrics.plots import temp_bins_plot
 
 # Import temperature scaling and NLL utilities
 from temperature_scaling import set_temperature2, temperature_scale2, class_temperature_scale2, set_temperature3, bins_temperature_scale_test3
@@ -28,7 +29,7 @@ def parseArgs():
     save_loc = './'
     save_plots_loc = './'
     saved_model_name = 'resnet110_cross_entropy_350.model'
-    num_bins = 15
+    num_bins = 25
     model_name = None
     train_batch_size = 128
     test_batch_size = 128
@@ -156,10 +157,10 @@ if __name__ == "__main__":
     if args.bins_temp:
         if const_temp:
             temperature = set_temperature3(logits_val, labels_val, temp_opt_iters, cross_validate=cross_validation_error,
-                                        init_temp=init_temp, acc_check=acc_check, const_temp=const_temp, log=args.log, num_bins=num_bins, top_temp=10)
+                                        init_temp=init_temp, acc_check=acc_check, const_temp=const_temp, log=args.log, num_bins=num_bins, top_temp=1.2)
         else:                              
-            bins_T, single_temp = set_temperature3(logits_val, labels_val, temp_opt_iters, cross_validate=cross_validation_error,
-                                                            init_temp=init_temp, acc_check=acc_check, const_temp=const_temp, log=args.log, num_bins=num_bins, top_temp=10)
+            bins_T, single_temp, bin_boundaries = set_temperature3(logits_val, labels_val, temp_opt_iters, cross_validate=cross_validation_error, init_temp=init_temp,
+                                                                   acc_check=acc_check, const_temp=const_temp, log=args.log, num_bins=num_bins, top_temp=1.2)
         
     else:    
         if const_temp:
@@ -175,8 +176,11 @@ if __name__ == "__main__":
     confs = np.max(softmaxs, axis=1)
     ece = ECE(confs, preds, labels_test, bin_size = 1/num_bins)
     """
+    
     if args.bins_temp:
-        ece = ece_criterion(bins_temperature_scale_test3(logits_test, bins_T, args.temp_opt_iters, num_bins), labels_test).item()
+        ece = ece_criterion(bins_temperature_scale_test3(logits_test, labels_test, bins_T, args.temp_opt_iters, bin_boundaries, num_bins), labels_test).item()
+        #for i in range(temp_opt_iters):
+        temp_bins_plot(bins_T, save_plots_loc, dataset, args.model, trained_loss, version=2)
     else:
         ece = ece_criterion(class_temperature_scale2(logits_test, csece_temperature), labels_test).item()
     ece_single = ece_criterion(temperature_scale2(logits_test, single_temp), labels_test).item()

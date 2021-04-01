@@ -21,9 +21,10 @@ from Net.wide_resnet import wide_resnet_cifar
 from Net.densenet import densenet121
 
 # Import metrics to compute
-from Metrics.metrics import test_classification_net_logits
-from Metrics.metrics import ECELoss, AdaptiveECELoss, ClasswiseECELoss, ClassECELoss, posnegECELoss, binsECELoss, diffECELoss, posnegECEbinsLoss, ClassECELoss2, posnegECELoss2, posnegECEbinsLoss2
-from Metrics.plots import reliability_plot, pos_neg_ece_plot, ece_acc_plot, ece_iters_plot, temp_acc_plot, diff_ece_plot, bins_over_conf_plot, pos_neg_ece_bins_plot
+from Metrics.metrics import test_classification_net_logits, ECELoss, AdaptiveECELoss, ClasswiseECELoss, ClassECELoss, posnegECELoss, binsECELoss
+from Metrics.metrics import diffECELoss, posnegECEbinsLoss, ClassECELoss2, posnegECELoss2, posnegECEbinsLoss2
+from Metrics.plots import reliability_plot, pos_neg_ece_plot, ece_acc_plot, ece_iters_plot, temp_acc_plot, diff_ece_plot
+from Metrics.plots import bins_over_conf_plot, pos_neg_ece_bins_plot, temp_bins_plot
 
 # Import temperature scaling and NLL utilities
 from temperature_scaling import ModelWithTemperature
@@ -301,6 +302,7 @@ if __name__ == "__main__":
     scaled_model = ModelWithTemperature(net, args.log, const_temp=const_temp, bins_temp=args.bins_temp, n_bins=num_bins, iters=temp_opt_iters)
     if args.bins_temp:
         scaled_model.set_bins_temperature2(val_loader, cross_validate=cross_validation_error, init_temp=init_temp, acc_check=acc_check, top_temp=10)
+        temp_bins_plot(scaled_model.bins_T, save_plots_loc, dataset, args.model, trained_loss, version=1)
         logits, labels = get_logits_labels_const(test_loader, scaled_model, bins_temp=True)
     else:
         scaled_model.set_temperature(val_loader, cross_validate=cross_validation_error, init_temp=init_temp, acc_check=acc_check)
