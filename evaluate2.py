@@ -180,7 +180,7 @@ if __name__ == "__main__":
     if args.bins_temp:
         ece = ece_criterion(bins_temperature_scale_test3(logits_test, labels_test, bins_T, args.temp_opt_iters, bin_boundaries, num_bins), labels_test).item()
         #for i in range(temp_opt_iters):
-        temp_bins_plot(bins_T, save_plots_loc, dataset, args.model, trained_loss, version=2)
+        temp_bins_plot(single_temp, bins_T, bin_boundaries, save_plots_loc, dataset, args.model, trained_loss, version=2)
     else:
         ece = ece_criterion(class_temperature_scale2(logits_test, csece_temperature), labels_test).item()
     ece_single = ece_criterion(temperature_scale2(logits_test, single_temp), labels_test).item()

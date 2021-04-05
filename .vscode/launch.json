@@ -1,0 +1,28 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: evaluate",
+            "type": "python",
+            "request": "launch",
+            "program": "evaluate.py",
+            "console": "integratedTerminal",
+            "args": ["--dataset", "cifar100", "--model", "resnet110", "--save-path", "/mnt/dsi_vol1/users/frenkel2/data/calibration/trained_models/cifar100/", "--saved_model_name", "resnet110_cross_entropy_350.model", "-log", "-iters", "1", "--dataset-root", "/mnt/dsi_vol1/users/frenkel2/data/calibration/tiny_imagenet/tiny-imagenet-200/", "--save-path-plots", "/mnt/dsi_vol1/users/frenkel2/data/calibration/plots/", "-acc", "-bins"]
+            //"args": ["--dataset", "cifar10", "--model", "resnet50", "--save-path", "/mnt/dsi_vol1/users/frenkel2/data/calibration/trained_models/cifar10/", "--saved_model_name", "resnet50_cross_entropy_350.model", "-log", "-iters", "1", "--dataset-root", "/mnt/dsi_vol1/users/frenkel2/data/calibration/tiny_imagenet/tiny-imagenet-200/", "--save-path-plots", "/mnt/dsi_vol1/users/frenkel2/data/calibration/plots/", "-acc", "-bins"]
+            //"args": ["--dataset", "tiny_imagenet", "--model", "resnet50_ti", "--save-path", "/mnt/dsi_vol1/users/frenkel2/data/calibration/trained_models/tiny_imagenet/", "--saved_model_name", "resnet50_cross_entropy_100.model", "-log", "-iters", "5", "--dataset-root", "/mnt/dsi_vol1/users/frenkel2/data/calibration/tiny_imagenet/tiny-imagenet-200/", "--save-path-plots", "/mnt/dsi_vol1/users/frenkel2/data/calibration/plots/", "-acc", "-bins"]
+        }
+        {
+            "name": "Python: evaluate2",
+            "type": "python",
+            "request": "launch",
+            "program": "evaluate2.py",
+            "console": "integratedTerminal",
+            "args": ["--dataset", "cifar100", "--model", "resnet110", "--save-path", "/mnt/dsi_vol1/users/frenkel2/data/calibration/trained_models/cifar100/", "--saved_model_name", "resnet110_cross_entropy_350.model", "-log", "-iters", "1", "--dataset-root", "/mnt/dsi_vol1/users/frenkel2/data/calibration/tiny_imagenet/tiny-imagenet-200/", "--save-path-plots", "/mnt/dsi_vol1/users/frenkel2/data/calibration/plots/", "-acc", "-bins", "--logits_file", "probs_resnet110_c100_logits.p"]
+            //"args": ["--dataset", "cifar10", "--model", "resnet50", "--save-path", "/mnt/dsi_vol1/users/frenkel2/data/calibration/trained_models/cifar10/", "--saved_model_name", "resnet110_cross_entropy_350.model", "-log", "-iters", "1", "--dataset-root", "/mnt/dsi_vol1/users/frenkel2/data/calibration/tiny_imagenet/tiny-imagenet-200/", "--save-path-plots", "/mnt/dsi_vol1/users/frenkel2/data/calibration/plots/", "-acc", "-bins", "--logits_file", "probs_resnet110_c10_logits.p"]
+            //"args": ["--dataset", "svhn", "--model", "resnet152sd", "--save-path", "/mnt/dsi_vol1/users/frenkel2/data/calibration/trained_models/tiny_imagenet/", "--saved_model_name", "resnet50_cross_entropy_100.model", "-log", "-iters", "1", "--dataset-root", "/mnt/dsi_vol1/users/frenkel2/data/calibration/tiny_imagenet/tiny-imagenet-200/", "--save-path-plots", "/mnt/dsi_vol1/users/frenkel2/data/calibration/plots/", "-acc", "-bins", "--logits_file", "probs_resnet152_SD_SVHN_logits.p"]
+        }
+    ]
+}

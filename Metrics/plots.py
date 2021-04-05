@@ -227,12 +227,13 @@ def bins_over_conf_plot(bins, diff, save_plots_loc, dataset, model, trained_loss
     plt.yticks(fontsize=10)
     plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'over_conf_bins_{}_scaling_{}_{}_{}.pdf'.format(scaling_related, dataset, model, trained_loss)), dpi=40)
 
-def temp_bins_plot(bins_T, save_plots_loc, dataset, model, trained_loss, acc_check=False, const_temp=False, version=1):
-    bin_boundaries = torch.linspace(0, 1, bins_T.shape[0] + 1)
+def temp_bins_plot(single_T, bins_T, bin_boundaries, save_plots_loc, dataset, model, trained_loss, acc_check=False, const_temp=False, version=1):
+    bin_boundaries = torch.linspace(0, bins_T.shape[0], bins_T.shape[0] + 1)
     bin_lowers = bin_boundaries[:-1]
     plt.figure()
     for i in range(bins_T.shape[1]):
         plt.plot(bin_lowers, bins_T[:, i].cpu(), label='iter number {}'.format(i+1))
+    plt.plot(bin_lowers, torch.ones(bins_T.shape[0])*single_T, label='Single temperature')
     plt.xlabel('Bins', fontsize=10)
     plt.xticks(fontsize=10)
     plt.ylabel('Temperature', fontsize=10)

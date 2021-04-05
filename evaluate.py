@@ -29,7 +29,7 @@ from Metrics.plots import bins_over_conf_plot, pos_neg_ece_bins_plot, temp_bins_
 # Import temperature scaling and NLL utilities
 from temperature_scaling import ModelWithTemperature
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "5"
+os.environ["CUDA_VISIBLE_DEVICES"] = "3"
 
 
 # Dataset params
