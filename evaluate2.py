@@ -129,6 +129,7 @@ if __name__ == "__main__":
     logits_file = args.logits_file
     logits_path = args.logits_path
 
+
     ece_criterion = ECELoss(n_bins=num_bins).cuda()
     
     # Loading logits and labels
