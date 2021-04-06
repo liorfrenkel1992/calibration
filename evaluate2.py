@@ -35,7 +35,8 @@ def parseArgs():
     test_batch_size = 128
     cross_validation_error = 'ece'
     trained_loss = 'cross_entropy'
-    logits_path = '/mnt/dsi_vol1/users/frenkel2/data/calibration/trained_models/spline/logits/'
+    #logits_path = '/mnt/dsi_vol1/users/frenkel2/data/calibration/trained_models/spline/logits/'
+    logits_path = 'C:/Users/liorf/OneDrive - Bar-Ilan University/calibration/trained_models/spline/logits/'
     logits_file = 'probs_resnet110_c10_logits.p'
 
     parser = argparse.ArgumentParser(
@@ -125,7 +126,7 @@ if __name__ == "__main__":
     init_temp = args.init_temp
     trained_loss = args.trained_loss
     acc_check = args.acc_check
-    logits_file =  args.logits_file
+    logits_file = args.logits_file
     logits_path = args.logits_path
 
     ece_criterion = ECELoss(n_bins=num_bins).cuda()
@@ -179,7 +180,6 @@ if __name__ == "__main__":
     
     if args.bins_temp:
         ece = ece_criterion(bins_temperature_scale_test3(logits_test, labels_test, bins_T, args.temp_opt_iters, bin_boundaries, num_bins), labels_test).item()
-        #for i in range(temp_opt_iters):
         temp_bins_plot(single_temp, bins_T, bin_boundaries, save_plots_loc, dataset, args.model, trained_loss, version=2)
     else:
         ece = ece_criterion(class_temperature_scale2(logits_test, csece_temperature), labels_test).item()
