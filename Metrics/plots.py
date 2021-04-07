@@ -227,11 +227,12 @@ def bins_over_conf_plot(bins, diff, save_plots_loc, dataset, model, trained_loss
     plt.yticks(fontsize=10)
     plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'over_conf_bins_{}_scaling_{}_{}_{}.pdf'.format(scaling_related, dataset, model, trained_loss)), dpi=40)
 
-def temp_bins_plot(single_T, bins_T, bin_boundaries, save_plots_loc, dataset, model, trained_loss, acc_check=False, const_temp=False, version=1):
+def temp_bins_plot(single_T, bins_T, bin_boundaries, save_plots_loc, dataset, model, trained_loss, acc_check=False, const_temp=False, divide='reg_divide', version=1):
     bin_boundaries = torch.linspace(0, bins_T.shape[0], bins_T.shape[0] + 1)
     bin_lowers = bin_boundaries[:-1]
     plt.figure()
     for i in range(bins_T.shape[1]):
+        #bin_lowers = bin_boundaries[i][:-1]
         plt.plot(bin_lowers, bins_T[:, i].cpu(), label='iter number {}'.format(i+1))
     plt.plot(bin_lowers, torch.ones(bins_T.shape[0])*single_T, label='Single temperature')
     plt.xlabel('Bins', fontsize=10)
@@ -240,9 +241,9 @@ def temp_bins_plot(single_T, bins_T, bin_boundaries, save_plots_loc, dataset, mo
     plt.yticks(fontsize=10)
     plt.legend(fontsize=10)
     if const_temp:
-        plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'temp_bins_{}_iters_{}_{}_{}_const_temp_ver_{}.pdf'.format(bins_T.shape[1], dataset, model, trained_loss, version)), dpi=40)
+        plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'temp_bins_{}_iters_{}_{}_{}_const_temp_ver_{}_{}.pdf'.format(bins_T.shape[1], dataset, model, trained_loss, version, divide)), dpi=40)
     else:
         if acc_check:
-            plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'temp_bins_{}_iters_{}_{}_{}_acc_ver_{}.pdf'.format(bins_T.shape[1], dataset, model, trained_loss, version)), dpi=40)
+            plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'temp_bins_{}_iters_{}_{}_{}_acc_ver_{}_{}.pdf'.format(bins_T.shape[1], dataset, model, trained_loss, version, divide)), dpi=40)
         else:
-            plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'temp_bins_{}_iters_{}_{}_{}_ver_{}.pdf'.format(bins_T.shape[1], dataset, model, trained_loss, version)), dpi=40)
+            plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'temp_bins_{}_iters_{}_{}_{}_ver_{}_{}.pdf'.format(bins_T.shape[1], dataset, model, trained_loss, version, divide)), dpi=40)
