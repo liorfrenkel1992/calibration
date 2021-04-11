@@ -93,7 +93,7 @@ def parseArgs():
                         help='File of saved logits')
     parser.add_argument("-bins", action="store_true", dest="bins_temp",
                         help="whether to calculate ECE for each bin separately")
-    parser.add_argument("--divide", type=str, default="reg_divide", dest="divide",
+    parser.add_argument("--divide", type=str, default="equal_divide", dest="divide",
                         help="How to divide bins (reg/equal)")
 
     return parser.parse_args()
@@ -155,15 +155,15 @@ if __name__ == "__main__":
     
     # Printing the required evaluation metrics
     if args.log:
-        print ('Pre-scaling test ECE: ' + str(p_ece))
-        print ('Pre-scaling test accuracy: ' + str(p_acc))
+        print('Pre-scaling test ECE: ' + str(p_ece))
+        print('Pre-scaling test accuracy: ' + str(p_acc))
 
     if args.bins_temp:
         if const_temp:
             temperature = set_temperature3(logits_val, labels_val, temp_opt_iters, cross_validate=cross_validation_error,
                                         init_temp=init_temp, acc_check=acc_check, const_temp=const_temp, log=args.log, num_bins=num_bins, top_temp=1.2)
         else:                              
-            bins_T, single_temp, bin_boundaries = set_temperature3(logits_val, labels_val, temp_opt_iters, cross_validate=cross_validation_error, init_temp=init_temp,
+            bins_T, single_temp, bin_boundaries, many_samples = set_temperature3(logits_val, labels_val, temp_opt_iters, cross_validate=cross_validation_error, init_temp=init_temp,
                                                                    acc_check=acc_check, const_temp=const_temp, log=args.log, num_bins=num_bins, top_temp=1.2)
         
     else:    
@@ -182,7 +182,7 @@ if __name__ == "__main__":
     """
     
     if args.bins_temp:
-        ece = ece_criterion(bins_temperature_scale_test3(logits_test, labels_test, bins_T, args.temp_opt_iters, bin_boundaries, num_bins), labels_test).item()
+        ece = ece_criterion(bins_temperature_scale_test3(logits_test, labels_test, bins_T, args.temp_opt_iters, bin_boundaries, many_samples, num_bins), labels_test).item()
         temp_bins_plot(single_temp, bins_T, bin_boundaries, save_plots_loc, dataset, args.model, trained_loss, args.divide, version=2)
     else:
         ece = ece_criterion(class_temperature_scale2(logits_test, csece_temperature), labels_test).item()
