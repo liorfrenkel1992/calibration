@@ -10,6 +10,7 @@ from Metrics.metrics import test_classification_net_logits
 from Metrics.metrics import ECELoss, ClassECELoss, posnegECELoss, estECELoss
 from Metrics.metrics2 import ECE, softmax, test_classification_net_logits2
 
+torch.set_printoptions(precision=10)
 
 class ModelWithTemperature(nn.Module):
     """
@@ -57,10 +58,54 @@ class ModelWithTemperature(nn.Module):
         # Expand temperature to match the size of logits
         return logits / self.csece_temperature
     
-    def bins_temperature_scale_test(self, logits, n_bins=15):
+    def bins_temperature_scale_test(self, logits, labels, n_bins=15):
         """
         Perform temperature scaling on logits
         """
+        ece_criterion = ECELoss(n_bins=n_bins).cuda()
+        softmaxes = F.softmax(logits, dim=1)
+        confidences, predictions = torch.max(softmaxes, 1)
+        accuracies = predictions.eq(labels)
+        # confidences[confidences == 1] = 0.999999
+        # logits_np = logits.cpu().detach().numpy()
+        # logits_max = torch.from_numpy(np.sort(logits_np)[:, -1])
+        # logits_diff = torch.from_numpy((np.sort(logits_np)[:, -1] - np.sort(logits_np)[:, -2]))
+        scaled_logits = logits.clone()
+        ece_list = []
+        for i in range(self.iters):
+            bin = 0
+            # bin_boundaries = torch.linspace(0, 1, n_bins + 1)
+            bin_lowers = self.bin_boundaries[i][:-1]
+            bin_uppers = self.bin_boundaries[i][1:]
+            prev_bin = None
+            print('\n')
+            for bin_lower, bin_upper in zip(bin_lowers, bin_uppers):
+                in_bin = confidences.gt(bin_lower.item()) * confidences.le(bin_upper.item())
+                prop_in_bin = in_bin.float().mean()
+                accuracies_temp = accuracies[in_bin]
+                # accuracy_in_bin = accuracies_temp.float().mean().item()
+                accuracy_in_bin = min(accuracies_temp.float().mean().item(), 0.99)
+                accuracy_in_bin = max(accuracy_in_bin, 0.01)
+                prev_bin = bin_upper
+                if any(in_bin):
+                    scaled_logits[in_bin] = scaled_logits[in_bin] / bins_T[bin, i]
+                    softmaxes_temp = F.softmax(scaled_logits[in_bin], dim=1)
+                    confidences_temp, _ = torch.max(softmaxes_temp, 1)
+                    avg_confidence_in_bin = confidences_temp.mean()
+                    after_temperature = torch.abs(accuracy_in_bin - avg_confidence_in_bin)
+                    samples = scaled_logits[in_bin].shape[0]
+                    print('ece in bin ', bin + 1, ' :', (prop_in_bin * after_temperature).item(),
+                          ', number of samples: ', samples)
+                    print('accuracy in bin ', bin + 1, ': ', accuracy_in_bin)
+                bin += 1
+
+            ece_list.append(ece_criterion(scaled_logits, labels).item())
+            softmaxes = F.softmax(scaled_logits, dim=1)
+            confidences, _ = torch.max(softmaxes, 1)
+
+        print(ece_list)
+
+        return scaled_logits
         softmaxes = F.softmax(logits, dim=1)
         confidences, _ = torch.max(softmaxes, 1)
         #bin_boundaries = torch.linspace(0, 1, n_bins + 1)
@@ -495,6 +540,8 @@ class ModelWithTemperature(nn.Module):
             ece_in_iter = 0
             print('iter num ', i+1)
             bin = 0
+            few_examples = dict()
+            starts = dict()
             n, self.bin_boundaries[i] = np.histogram(confidences.cpu().detach(), self.histedges_equalN(confidences.cpu().detach()))
             #bin_boundaries = torch.linspace(0, 1, n_bins + 1)
             bin_lowers = self.bin_boundaries[i][:-1]
@@ -502,9 +549,15 @@ class ModelWithTemperature(nn.Module):
             for bin_lower, bin_upper in zip(bin_lowers, bin_uppers):
                 bece_val = 10 ** 7
                 in_bin = confidences.gt(bin_lower.item()) * confidences.le(bin_upper.item())
-                #inx = (in_bin == True).nonzero(as_tuple=True)[0]
                 prop_in_bin = in_bin.float().mean()
+                if confidences[in_bin].shape[0] < 20:
+                    samples = T_bece[in_bin].shape[0]
+                    print('number of samples in bin {0}: {1}'.format(bin + 1, samples))
+                    few_examples[bin] = samples
+                    bin += 1
+                    continue
                 if any(in_bin):
+                    """
                     if confidences[in_bin].shape[0] < 10 and bin > 0 and bin < n_bins - 1:
                         avg_temp = (self.bins_T[bin - 1, i] + self.bins_T[bin + 1, i]) / 2  # Mean temperature of neighbors
                         T_opt_bece[in_bin] = avg_temp
@@ -523,7 +576,7 @@ class ModelWithTemperature(nn.Module):
                         print('ece in bin ', bin+1, ' :', (prop_in_bin * bece_val).item(), ', number of samples: ', samples)
                         bin += 1
                         continue
-                    
+                    """
                     init_temp_value = T_bece[in_bin][0].item()
                     T = 0.1
                     accuracies_temp = accuracies[in_bin]
@@ -565,11 +618,36 @@ class ModelWithTemperature(nn.Module):
                     ece_in_iter += prop_in_bin * bece_val
                     print('ece in bin ', bin+1, ' :', (prop_in_bin * bece_val).item(), ', number of samples: ', samples)
                 bin += 1
-            
-            print('ece in iter ', i+1, ' :', ece_in_iter.item())
+
+            for bin in few_examples:
+                #bins_T[bin, i] = temperature
+
+                if bin > 0 and bin < n_bins - 1:
+                    lower_bin = bin - 1
+                    upper_bin = bin + 1
+                    while lower_bin in few_examples and lower_bin - 1 >= 0:
+                        lower_bin -= 1
+                    while upper_bin in few_examples and upper_bin + 1 <= n_bins - 1:
+                        upper_bin += 1
+                    if upper_bin == n_bins - 1:
+                        self.bins_T[bin, i] = self.bins_T[lower_bin, i]
+                    else:
+                        avg_temp = (self.bins_T[lower_bin, i] + self.bins_T[upper_bin, i]) / 2  # Mean temperature of neighbors
+                        self.bins_T[bin, i] = avg_temp
+                elif bin == 0:
+                    upper_bin = bin + 1
+                    while upper_bin in few_examples and upper_bin + 1 <= n_bins - 1:
+                        upper_bin += 1
+                    self.bins_T[bin, i] = self.bins_T[upper_bin, i]
+                else:
+                    lower_bin = bin - 1
+                    while lower_bin in few_examples and lower_bin - 1 >= 0:
+                        lower_bin -= 1
+                    self.bins_T[bin, i] = self.bins_T[lower_bin, i]
             
             self.bece_temperature = T_opt_bece
             current_ece = ece_criterion(self.bins_temperature_scale(logits), labels).item()
+            print('ece in iter ', i + 1, ' :', current_ece)
             if abs(self.ece_list[-1] - current_ece) > eps:
                 self.ece_list.append(current_ece)
             else:
@@ -817,14 +895,15 @@ def histedges_equalN(x, n_bins=15):
     
 def equal_bins(x, n_bins=15):
     #sorted_samples = np.unique(x.numpy())
+    #n, bin_boundaries = np.histogram(x, histedges_equalN(x, n_bins=n_bins))
     bin_size = int(x.shape[0] / n_bins)
     sorted_samples = np.sort(x)
     unique_samples, counts = np.unique(sorted_samples, return_counts=True)
     many_samples = dict()
     for sample, count in zip(unique_samples, counts):
         if count > bin_size:
-            #many_samples[sample] = int(count / bin_size)
             many_samples[sample] = count
+
     bin_boundaries = np.zeros(n_bins + 1)
     bin_boundaries[0] = sorted_samples[0]
     #bin_boundaries[-1] = 0.9999999
@@ -833,11 +912,10 @@ def equal_bins(x, n_bins=15):
     i = 1
     for sample in sorted_samples:
         if counter == bin_size*i:
-            if i == 24:
-                print('here')
             bin_boundaries[i] = sample
             i+=1
         counter+=1
+
     return bin_boundaries, many_samples
 
 def bins_temperature_scale_test3(logits, labels, bins_T, iters, bin_boundaries, many_samples, n_bins=15):
@@ -848,7 +926,7 @@ def bins_temperature_scale_test3(logits, labels, bins_T, iters, bin_boundaries, 
         softmaxes = F.softmax(logits, dim=1)
         confidences, predictions = torch.max(softmaxes, 1)
         accuracies = predictions.eq(labels)
-        #confidences[confidences == 1] = 0.9999999
+        #confidences[confidences == 1] = 0.999999
         #logits_np = logits.cpu().detach().numpy()
         #logits_max = torch.from_numpy(np.sort(logits_np)[:, -1])
         #logits_diff = torch.from_numpy((np.sort(logits_np)[:, -1] - np.sort(logits_np)[:, -2]))
@@ -862,7 +940,9 @@ def bins_temperature_scale_test3(logits, labels, bins_T, iters, bin_boundaries, 
             prev_bin = None
             print('\n')
             for bin_lower, bin_upper in zip(bin_lowers, bin_uppers):
+                """
                 if prev_bin == bin_upper:
+                    print('accuracy in bin ', bin + 1, ': ', accuracy_in_bin)
                     bin += 1
                     continue
                 if bin_upper in many_samples:
@@ -874,9 +954,6 @@ def bins_temperature_scale_test3(logits, labels, bins_T, iters, bin_boundaries, 
                         accuracy_in_bin = accuracies_temp.float().mean().item()
                         #accuracy_in_bin = min(accuracies_temp.float().mean().item(), 0.99)
                         #accuracy_in_bin = max(accuracy_in_bin, 0.01)
-                        if torch.abs(accuracy_in_bin - avg_confidence_in_bin) <= 1e-3:
-                            bin += 1
-                            continue
                     else:
                         num_samples = len(confidences[confidences == bin_upper])
                         bin_size = int(confidences.shape[0] / n_bins)
@@ -884,6 +961,7 @@ def bins_temperature_scale_test3(logits, labels, bins_T, iters, bin_boundaries, 
                         in_bin = torch.zeros(confidences.shape[0], dtype=torch.bool)
                         in_bin[confidences == bin_upper] = True
                         prop_in_bin = in_bin.float().mean()
+                        #scaled_logits[in_bin] = scaled_logits[in_bin] / torch.unsqueeze(bins_T[bin, i], -1)
                         scaled_logits[in_bin] = scaled_logits[in_bin] / torch.unsqueeze(bins_T[possible_bins, i], -1)
                         softmaxes_temp = F.softmax(scaled_logits[in_bin], dim=1)
                         confidences_temp, _ = torch.max(softmaxes_temp, 1)
@@ -892,9 +970,6 @@ def bins_temperature_scale_test3(logits, labels, bins_T, iters, bin_boundaries, 
                         accuracy_in_bin = accuracies_temp.float().mean().item()
                         #accuracy_in_bin = min(accuracies_temp.float().mean().item(), 0.99)
                         #accuracy_in_bin = max(accuracy_in_bin, 0.01)
-                        if torch.abs(accuracy_in_bin - avg_confidence_in_bin) <= 1e-3:
-                            bin += 1
-                            continue
                         after_temperature = torch.abs(accuracy_in_bin - avg_confidence_in_bin)
                         samples = scaled_logits[in_bin].shape[0]
                         print('ece in bin ', bin + 1, ' :', (prop_in_bin * after_temperature).item(),
@@ -903,18 +978,14 @@ def bins_temperature_scale_test3(logits, labels, bins_T, iters, bin_boundaries, 
                         bin += 1
                         continue
                 else:
-                    in_bin = confidences.gt(bin_lower.item()) * confidences.le(bin_upper.item())
-                    #in_bin = logits_diff.gt(bin_lower.item()) * logits_diff.le(bin_upper.item())
-                    prop_in_bin = in_bin.float().mean()
-                    accuracies_temp = accuracies[in_bin]
-                    accuracy_in_bin = accuracies_temp.float().mean().item()
-                    #accuracy_in_bin = min(accuracies_temp.float().mean().item(), 0.99)
-                    #accuracy_in_bin = max(accuracy_in_bin, 0.01)
-                    avg_confidence_in_bin = confidences[in_bin].mean()
-                    if torch.abs(accuracy_in_bin - avg_confidence_in_bin) <= 1e-3:
-                        bin+=1
-                        continue
-                    prev_bin = bin_upper
+                """
+                in_bin = confidences.gt(bin_lower.item()) * confidences.le(bin_upper.item())
+                prop_in_bin = in_bin.float().mean()
+                accuracies_temp = accuracies[in_bin]
+                #accuracy_in_bin = accuracies_temp.float().mean().item()
+                accuracy_in_bin = min(accuracies_temp.float().mean().item(), 0.99)
+                accuracy_in_bin = max(accuracy_in_bin, 0.01)
+                prev_bin = bin_upper
                 if any(in_bin):
                     scaled_logits[in_bin] = scaled_logits[in_bin] / bins_T[bin, i]
                     softmaxes_temp = F.softmax(scaled_logits[in_bin], dim=1)
@@ -1024,7 +1095,7 @@ def set_temperature3(logits, labels, iters=1, cross_validate='ece',
                 
         softmaxes = F.softmax(logits, dim=1)
         confidences, predictions = torch.max(softmaxes, 1)
-        #confidences[confidences == 1] = 0.9999999
+        #confidences[confidences == 1] = 0.999999
         #logits_np = logits.cpu().detach().numpy()
         #logits_max = torch.from_numpy(np.sort(logits_np)[:, -1])
         #logits_diff = torch.from_numpy((np.sort(logits_np)[:, -1] - np.sort(logits_np)[:, -2]))
@@ -1034,20 +1105,22 @@ def set_temperature3(logits, labels, iters=1, cross_validate='ece',
         
         steps_limit = 0.2
         temp_steps = torch.linspace(-steps_limit, steps_limit, int((2 * steps_limit) / 0.1 + 1)).cuda()
-        
+        many_samples = None
+
         for i in range(iters):
             ece_in_iter = 0
             print('iter num ', i+1)
             bin = 0
             few_examples = dict()
             starts = dict()
-            #n, bin_boundaries[i] = np.histogram(confidences.cpu().detach(), histedges_equalN(confidences.cpu().detach(), n_bins=n_bins))
+            n, bin_boundaries[i] = np.histogram(confidences.cpu().detach(), histedges_equalN(confidences.cpu().detach(), n_bins=n_bins))
             #bin_boundaries = torch.linspace(0, 1, n_bins + 1)
-            bin_boundaries[i], many_samples = equal_bins(confidences.cpu().detach(), n_bins=n_bins)
+            #bin_boundaries[i], many_samples = equal_bins(confidences.cpu().detach(), n_bins=n_bins)
             bin_lowers = bin_boundaries[i][:-1]
             bin_uppers = bin_boundaries[i][1:]
             for bin_lower, bin_upper in zip(bin_lowers, bin_uppers):
                 bece_val = 10 ** 7
+                """
                 if bin_upper in many_samples:
                     in_bin = torch.zeros(confidences.shape[0], dtype=torch.bool)
                     if bin_upper in starts:
@@ -1067,9 +1140,10 @@ def set_temperature3(logits, labels, iters=1, cross_validate='ece',
                         #in_bin = sorted_confidences[:int(confidences.shape[0] / n_bins)]
                         in_bin[indices[:int(confidences.shape[0] / n_bins)]] = True
                         starts[bin_upper] = int(confidences.shape[0] / n_bins) - diff
-
+                    
                 else:
-                    in_bin = confidences.gt(bin_lower.item()) * confidences.le(bin_upper.item())
+                """
+                in_bin = confidences.gt(bin_lower.item()) * confidences.le(bin_upper.item())
                 prop_in_bin = in_bin.float().mean()
                 if confidences[in_bin].shape[0] < 20:
                     samples = T_bece[in_bin].shape[0]
@@ -1081,16 +1155,20 @@ def set_temperature3(logits, labels, iters=1, cross_validate='ece',
                     init_temp_value = T_bece[in_bin][0].item()
                     T = 0.1
                     accuracies_temp = accuracies[in_bin]
-                    accuracy_in_bin = accuracies_temp.float().mean()
+                    origin_accuracy_in_bin = accuracies_temp.float().mean().item()
                     avg_confidence_in_bin = confidences[in_bin].mean()
-                    if torch.abs(accuracy_in_bin - avg_confidence_in_bin) <= 1e-3:
+                    """
+                    if origin_accuracy_in_bin == 1 and avg_confidence_in_bin >= 0.999:
                         T_bece[in_bin] = 1.0
                         bece_temperature = T_bece
                         bins_T[bin, i] = T_bece[in_bin][0].item()
                         bin += 1
                         continue
-                    #accuracy_in_bin = min(accuracies_temp.float().mean(), 0.99)
-                    #accuracy_in_bin = max(accuracy_in_bin, 0.01)
+                    """
+                    accuracy_in_bin = min(origin_accuracy_in_bin, 0.99)
+                    accuracy_in_bin = max(accuracy_in_bin, 0.01)
+                    #if torch.abs(accuracy_in_bin - avg_confidence_in_bin) <= 1e-3:
+
                     for t in range(100):
                     #for step in temp_steps:
                         #T_bece[in_bin] = init_temp_value + step
@@ -1108,7 +1186,6 @@ def set_temperature3(logits, labels, iters=1, cross_validate='ece',
                         
                         softmaxes_temp = F.softmax(logits[in_bin] / torch.unsqueeze(T_bece[in_bin], -1), dim=1)
                         confidences_temp, _ = torch.max(softmaxes_temp, 1)
-                        #accuracies_temp = predictions_temp.eq(labels[in_bin])
                         avg_confidence_in_bin = confidences_temp.mean()
                         after_temperature = torch.abs(accuracy_in_bin - avg_confidence_in_bin)
                         
@@ -1145,8 +1222,11 @@ def set_temperature3(logits, labels, iters=1, cross_validate='ece',
                         lower_bin -= 1
                     while upper_bin in few_examples and upper_bin + 1 <= n_bins - 1:
                         upper_bin += 1
-                    avg_temp = (bins_T[lower_bin, i] + bins_T[upper_bin, i]) / 2  # Mean temperature of neighbors
-                    bins_T[bin, i] = avg_temp
+                    if upper_bin == n_bins - 1:
+                        bins_T[bin, i] = bins_T[lower_bin, i]
+                    else:
+                        avg_temp = (bins_T[lower_bin, i] + bins_T[upper_bin, i]) / 2  # Mean temperature of neighbors
+                        bins_T[bin, i] = avg_temp
                 elif bin == 0:
                     upper_bin = bin + 1
                     while upper_bin in few_examples and upper_bin + 1 <= n_bins - 1:

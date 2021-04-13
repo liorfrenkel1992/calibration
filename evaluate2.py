@@ -182,8 +182,9 @@ if __name__ == "__main__":
     """
     
     if args.bins_temp:
+        temp_bins_plot(single_temp, bins_T, bin_boundaries, save_plots_loc, dataset, args.model, trained_loss,
+                       divide=args.divide, ds='val', version=2)
         ece = ece_criterion(bins_temperature_scale_test3(logits_test, labels_test, bins_T, args.temp_opt_iters, bin_boundaries, many_samples, num_bins), labels_test).item()
-        temp_bins_plot(single_temp, bins_T, bin_boundaries, save_plots_loc, dataset, args.model, trained_loss, args.divide, version=2)
     else:
         ece = ece_criterion(class_temperature_scale2(logits_test, csece_temperature), labels_test).item()
     ece_single = ece_criterion(temperature_scale2(logits_test, single_temp), labels_test).item()
