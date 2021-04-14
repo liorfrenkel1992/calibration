@@ -134,7 +134,7 @@ def get_logits_labels_const(data_loader, net, const_temp=False, bins_temp=False)
     with torch.no_grad():
         for data, label in data_loader:
             data = data.cuda()
-            logits = net(data, const_temp=const_temp, bins_temp=bins_temp)
+            logits = net(data, label, const_temp=const_temp, bins_temp=bins_temp)
             logits_list.append(logits)
             labels_list.append(label)
         logits = torch.cat(logits_list).cuda()
@@ -177,14 +177,14 @@ if __name__ == "__main__":
     dataset = args.dataset
     dataset_root = args.dataset_root
     model_name = args.model_name
-    save_loc = args.save_loc
+    save_loc = args.save_loc + 'trained_models\\cifar100\\'
     saved_model_name = args.saved_model_name
     num_bins = args.num_bins
     cross_validation_error = args.cross_validation_error
     temp_opt_iters = args.temp_opt_iters
     const_temp = args.const_temp
     create_plots = args.create_plots
-    save_plots_loc = args.save_plots_loc
+    save_plots_loc = args.save_loc + 'plots\\'
     init_temp = args.init_temp
     pos_neg_ece = args.pos_neg_ece
     uncalibrate_check = args.uncalibrated_check
