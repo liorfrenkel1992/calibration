@@ -844,20 +844,23 @@ def set_temperature2(logits, labels, iters=1, cross_validate='ece',
         return temperature
     else:
         return csece_temperature, init_temp
-    
+
+
 def bins_temperature_scale2(logits, bece_temperature):
         """
         Perform temperature scaling on logits
         """     
         # Expand temperature to match the size of logits
         return logits / torch.unsqueeze(bece_temperature, -1)
-    
+
+
 def histedges_equalN(x, n_bins=15):
     npt = len(x)
     return np.interp(np.linspace(0, npt, n_bins + 1),
                     np.arange(npt),
                     np.sort(x))
-    
+
+
 def equal_bins(x, n_bins=15):
     #sorted_samples = np.unique(x.numpy())
     #n, bin_boundaries = np.histogram(x, histedges_equalN(x, n_bins=n_bins))
@@ -883,7 +886,23 @@ def equal_bins(x, n_bins=15):
 
     return bin_boundaries, many_samples
 
-def bins_temperature_scale_test3(logits, labels, bins_T, iters, bin_boundaries, many_samples, n_bins=15):
+
+def bin_ece(logits, accuracies, in_bin):
+    accuracies_temp = accuracies[in_bin]
+    accuracy_in_bin = min(accuracies_temp.float().mean().item(), 0.99)
+    accuracy_in_bin = max(accuracy_in_bin, 0.01)
+    prop_in_bin = in_bin.float().mean()
+    softmaxes_temp = F.softmax(logits, dim=1)
+    confidences_temp, _ = torch.max(softmaxes_temp, 1)
+    avg_confidence_in_bin = confidences_temp.mean()
+    after_temperature = torch.abs(accuracy_in_bin - avg_confidence_in_bin)
+    samples = logits.shape[0]
+    ece = (prop_in_bin * after_temperature).item()
+
+    return ece, samples, accuracy_in_bin
+
+
+def bins_temperature_scale_test3(logits, labels, bins_T, iters, bin_boundaries, many_samples, single_temp, n_bins=15):
         """
         Perform temperature scaling on logits
         """
@@ -897,6 +916,9 @@ def bins_temperature_scale_test3(logits, labels, bins_T, iters, bin_boundaries, 
         #logits_diff = torch.from_numpy((np.sort(logits_np)[:, -1] - np.sort(logits_np)[:, -2]))
         scaled_logits = logits.clone()
         ece_list = []
+        ece_per_bin = []
+        single_ece_per_bin = []
+        original_ece_per_bin = []
         for i in range(iters):
             bin = 0
             #bin_boundaries = torch.linspace(0, 1, n_bins + 1)
@@ -945,20 +967,16 @@ def bins_temperature_scale_test3(logits, labels, bins_T, iters, bin_boundaries, 
                 else:
                 """
                 in_bin = confidences.gt(bin_lower.item()) * confidences.le(bin_upper.item())
-                prop_in_bin = in_bin.float().mean()
-                accuracies_temp = accuracies[in_bin]
-                #accuracy_in_bin = accuracies_temp.float().mean().item()
-                accuracy_in_bin = min(accuracies_temp.float().mean().item(), 0.99)
-                accuracy_in_bin = max(accuracy_in_bin, 0.01)
-                prev_bin = bin_upper
                 if any(in_bin):
                     scaled_logits[in_bin] = scaled_logits[in_bin] / bins_T[bin, i]
-                    softmaxes_temp = F.softmax(scaled_logits[in_bin], dim=1)
-                    confidences_temp, _ = torch.max(softmaxes_temp, 1)
-                    avg_confidence_in_bin = confidences_temp.mean()
-                    after_temperature = torch.abs(accuracy_in_bin - avg_confidence_in_bin)
-                    samples = scaled_logits[in_bin].shape[0]
-                    print('ece in bin ', bin + 1, ' :', (prop_in_bin * after_temperature).item(),
+                    ece, samples, accuracy_in_bin = bin_ece(scaled_logits[in_bin], accuracies, in_bin)
+                    ece_per_bin.append(ece)
+                    single_logits = scaled_logits[in_bin] / single_temp
+                    single_ece, _, _ = bin_ece(single_logits, accuracies, in_bin)
+                    single_ece_per_bin.append(single_ece)
+                    original_ece, _, _ = bin_ece(logits[in_bin], accuracies, in_bin)
+                    original_ece_per_bin.append(original_ece)
+                    print('ece in bin ', bin + 1, ' :', ece,
                           ', number of samples: ', samples)
                     print('accuracy in bin ', bin + 1, ': ', accuracy_in_bin)
                 bin += 1
