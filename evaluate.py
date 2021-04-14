@@ -24,7 +24,7 @@ from Net.densenet import densenet121
 from Metrics.metrics import test_classification_net_logits, ECELoss, AdaptiveECELoss, ClasswiseECELoss, ClassECELoss, posnegECELoss, binsECELoss
 from Metrics.metrics import diffECELoss, posnegECEbinsLoss, ClassECELoss2, posnegECELoss2, posnegECEbinsLoss2
 from Metrics.plots import reliability_plot, pos_neg_ece_plot, ece_acc_plot, ece_iters_plot, temp_acc_plot, diff_ece_plot
-from Metrics.plots import bins_over_conf_plot, pos_neg_ece_bins_plot, temp_bins_plot
+from Metrics.plots import bins_over_conf_plot, pos_neg_ece_bins_plot, temp_bins_plot, ece_bin_plot
 
 # Import temperature scaling and NLL utilities
 from temperature_scaling import ModelWithTemperature
@@ -177,14 +177,14 @@ if __name__ == "__main__":
     dataset = args.dataset
     dataset_root = args.dataset_root
     model_name = args.model_name
-    save_loc = args.save_loc + 'trained_models\\cifar100\\'
+    save_loc = args.save_loc
     saved_model_name = args.saved_model_name
     num_bins = args.num_bins
     cross_validation_error = args.cross_validation_error
     temp_opt_iters = args.temp_opt_iters
     const_temp = args.const_temp
     create_plots = args.create_plots
-    save_plots_loc = args.save_loc + 'plots\\'
+    save_plots_loc = args.save_plots_loc
     init_temp = args.init_temp
     pos_neg_ece = args.pos_neg_ece
     uncalibrate_check = args.uncalibrated_check
@@ -302,7 +302,7 @@ if __name__ == "__main__":
     scaled_model = ModelWithTemperature(net, args.log, const_temp=const_temp, bins_temp=args.bins_temp, n_bins=num_bins, iters=temp_opt_iters)
     if args.bins_temp:
         scaled_model.set_bins_temperature2(val_loader, cross_validate=cross_validation_error, init_temp=init_temp, acc_check=acc_check, top_temp=10)
-        temp_bins_plot(scaled_model.bins_T, save_plots_loc, dataset, args.model, trained_loss, version=1)
+        temp_bins_plot(scaled_model.temperature, scaled_model.bins_T, scaled_model.bin_boundaries, save_plots_loc, dataset, args.model, trained_loss, version=1)
         logits, labels = get_logits_labels_const(test_loader, scaled_model, bins_temp=True)
     else:
         scaled_model.set_temperature(val_loader, cross_validate=cross_validation_error, init_temp=init_temp, acc_check=acc_check)

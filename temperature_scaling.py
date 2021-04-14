@@ -39,7 +39,7 @@ class ModelWithTemperature(nn.Module):
         if self.const_temp or const_temp:
             return self.temperature_scale(logits)
         elif bins_temp:
-            return self.bins_temperature_scale_test(logits, labels, n_bins=self.n_bins)
+            return self.bins_temperature_scale_test(logits, labels.cuda(), n_bins=self.n_bins)
         else:
             return self.class_temperature_scale(logits)
 
