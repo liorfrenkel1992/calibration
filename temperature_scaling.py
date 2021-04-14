@@ -971,7 +971,7 @@ def bins_temperature_scale_test3(logits, labels, bins_T, iters, bin_boundaries, 
                     scaled_logits[in_bin] = scaled_logits[in_bin] / bins_T[bin, i]
                     ece, samples, accuracy_in_bin = bin_ece(scaled_logits[in_bin], accuracies, in_bin)
                     ece_per_bin.append(ece)
-                    single_logits = scaled_logits[in_bin] / single_temp
+                    single_logits = logits[in_bin] / single_temp
                     single_ece, _, _ = bin_ece(single_logits, accuracies, in_bin)
                     single_ece_per_bin.append(single_ece)
                     original_ece, _, _ = bin_ece(logits[in_bin], accuracies, in_bin)
@@ -987,7 +987,7 @@ def bins_temperature_scale_test3(logits, labels, bins_T, iters, bin_boundaries, 
         
         print(ece_list)
         
-        return scaled_logits
+        return scaled_logits, ece_per_bin, single_ece_per_bin, original_ece_per_bin
 
 def set_temperature3(logits, labels, iters=1, cross_validate='ece',
                      init_temp=2.5, acc_check=False, const_temp=False, log=True, num_bins=25, top_temp=10):

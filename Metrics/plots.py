@@ -206,7 +206,8 @@ def temp_acc_plot(acc, temp, single_temp, save_plots_loc, dataset, model, traine
             plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'temp_acc_after_scaling_{}_{}_{}_acc.pdf'.format(dataset, model, trained_loss)), dpi=40)
         else:
             plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'temp_acc_after_scaling_{}_{}_{}.pdf'.format(dataset, model, trained_loss)), dpi=40)
-            
+
+
 def diff_ece_plot(acc, csece1, csece2, save_plots_loc, dataset, model, trained_loss, acc_check=False, scaling_type='class_based'):
     plt.figure()
     plt.scatter(acc, (csece1 - csece2).cpu())
@@ -219,7 +220,8 @@ def diff_ece_plot(acc, csece1, csece2, save_plots_loc, dataset, model, trained_l
         plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'diff_{}_ece_acc_after_scaling_{}_{}_{}_acc.pdf'.format(scaling_type, dataset, model, trained_loss)), dpi=40)
     else:
         plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'diff_{}_ece_acc_after_scaling_{}_{}_{}.pdf'.format(scaling_type, dataset, model, trained_loss)), dpi=40)
-        
+
+
 def bins_over_conf_plot(bins, diff, save_plots_loc, dataset, model, trained_loss, scaling_related='before'):
     plt.figure()
     plt.plot(bins, diff)
@@ -228,6 +230,7 @@ def bins_over_conf_plot(bins, diff, save_plots_loc, dataset, model, trained_loss
     plt.ylabel('confidence - accuracy', fontsize=10)
     plt.yticks(fontsize=10)
     plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'over_conf_bins_{}_scaling_{}_{}_{}.pdf'.format(scaling_related, dataset, model, trained_loss)), dpi=40)
+
 
 def temp_bins_plot(single_T, bins_T, bin_boundaries, save_plots_loc, dataset, model, trained_loss, acc_check=False, const_temp=False, divide='reg_divide', ds='val', version=1):
     bin_boundaries = torch.linspace(0, bins_T.shape[0], bins_T.shape[0] + 1)
@@ -254,3 +257,18 @@ def temp_bins_plot(single_T, bins_T, bin_boundaries, save_plots_loc, dataset, mo
             plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'temp_bins_{}_iters_{}_{}_{}_acc_ver_{}_{}_{}_smooth.pdf'.format(bins_T.shape[1], dataset, model, trained_loss, version, divide, ds)), dpi=40)
         else:
             plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'temp_bins_{}_iters_{}_{}_{}_ver_{}_{}_{}_smooth.pdf'.format(bins_T.shape[1], dataset, model, trained_loss, version, divide, ds)), dpi=40)
+
+
+def ece_bin_plot(ece_bin, single_ece_bin, origin_ece_bin, save_plots_loc, dataset, model, trained_loss, divide='reg_divide', ds='val', version=1):
+    plt.figure()
+    plt.plot(range(len(ece_bin)), origin_ece_bin, label='ECE before scaling')
+    plt.plot(range(len(ece_bin)), single_ece_bin, label='ECE after single temp scaling')
+    plt.plot(range(len(ece_bin)), ece_bin, label='ECE after per bin temp scaling')
+    plt.xlabel('Bins', fontsize=10)
+    plt.xticks(fontsize=10)
+    plt.ylabel('ECE', fontsize=10)
+    plt.yticks(fontsize=10)
+    plt.legend(fontsize=9)
+    plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model),
+                             'ece_bins_{}_{}_{}_ver_{}_{}_{}_smooth.pdf'.format(dataset, model, trained_loss, version,
+                                                                                divide, ds)), dpi=40)

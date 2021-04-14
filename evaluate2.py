@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 from Metrics.metrics import test_classification_net_logits
 from Metrics.metrics import ECELoss
 from Metrics.metrics2 import ECE, softmax
-from Metrics.plots import temp_bins_plot
+from Metrics.plots import temp_bins_plot, ece_bin_plot
 
 # Import temperature scaling and NLL utilities
 from temperature_scaling import set_temperature2, temperature_scale2, class_temperature_scale2, set_temperature3, bins_temperature_scale_test3
@@ -184,9 +184,13 @@ if __name__ == "__main__":
     if args.bins_temp:
         temp_bins_plot(single_temp, bins_T, bin_boundaries, save_plots_loc, dataset, args.model, trained_loss,
                        divide=args.divide, ds='val', version=2)
-        ece = ece_criterion(bins_temperature_scale_test3(logits_test, labels_test, bins_T,
-                                                         args.temp_opt_iters, bin_boundaries,
-                                                         many_samples, single_temp, num_bins), labels_test).item()
+        scaled_logits, ece_bin, single_ece_bin, origin_ece_bin = bins_temperature_scale_test3(logits_test, labels_test,
+                                                                                              bins_T, args.temp_opt_iters,
+                                                                                              bin_boundaries, many_samples,
+                                                                                              single_temp, num_bins)
+        ece_bin_plot(ece_bin, single_ece_bin, origin_ece_bin, save_plots_loc, dataset, args.model, trained_loss,
+                       divide=args.divide, ds='val', version=2)
+        ece = ece_criterion(scaled_logits, labels_test).item()
     else:
         ece = ece_criterion(class_temperature_scale2(logits_test, csece_temperature), labels_test).item()
     ece_single = ece_criterion(temperature_scale2(logits_test, single_temp), labels_test).item()
