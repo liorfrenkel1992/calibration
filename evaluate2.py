@@ -35,8 +35,8 @@ def parseArgs():
     test_batch_size = 128
     cross_validation_error = 'ece'
     trained_loss = 'cross_entropy'
-    #logits_path = '/mnt/dsi_vol1/users/frenkel2/data/calibration/trained_models/spline/logits/'
-    logits_path = 'C:/Users/liorf/OneDrive - Bar-Ilan University/calibration/trained_models/spline/logits/'
+    logits_path = '/mnt/dsi_vol1/users/frenkel2/data/calibration/trained_models/spline/logits/'
+    #logits_path = 'C:/Users/liorf/OneDrive - Bar-Ilan University/calibration/trained_models/spline/logits/'
     logits_file = 'probs_resnet110_c10_logits.p'
 
     parser = argparse.ArgumentParser(

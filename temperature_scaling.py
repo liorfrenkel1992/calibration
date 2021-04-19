@@ -5,6 +5,7 @@ import torch
 import numpy as np
 from torch import nn, optim
 from torch.nn import functional as F
+import math
 
 from Metrics.metrics import test_classification_net_logits
 from Metrics.metrics import ECELoss, ClassECELoss, posnegECELoss, estECELoss
@@ -902,11 +903,13 @@ def bin_ece(logits, accuracies, in_bin):
     return ece, samples, accuracy_in_bin
 
 
-def bins_temperature_scale_test3(logits, labels, bins_T, iters, bin_boundaries, many_samples, single_temp, n_bins=15):
+def bins_temperature_scale_test3(all_logits, all_labels, bins_T, iters, bin_boundaries, many_samples, single_temp, n_bins=15):
         """
         Perform temperature scaling on logits
         """
         ece_criterion = ECELoss(n_bins=n_bins).cuda()
+        logits = all_logits[interval*bs:(interval + 1)*bs]
+        labels = all_labels[interval*bs:(interval + 1)*bs]
         softmaxes = F.softmax(logits, dim=1)
         confidences, predictions = torch.max(softmaxes, 1)
         accuracies = predictions.eq(labels)
@@ -960,7 +963,7 @@ def bins_temperature_scale_test3(logits, labels, bins_T, iters, bin_boundaries, 
                         after_temperature = torch.abs(accuracy_in_bin - avg_confidence_in_bin)
                         samples = scaled_logits[in_bin].shape[0]
                         print('ece in bin ', bin + 1, ' :', (prop_in_bin * after_temperature).item(),
-                              ', number of samples: ', samples)
+                            ', number of samples: ', samples)
                         prev_bin = bin_upper
                         bin += 1
                         continue
@@ -977,7 +980,7 @@ def bins_temperature_scale_test3(logits, labels, bins_T, iters, bin_boundaries, 
                     original_ece, _, _ = bin_ece(logits[in_bin], accuracies, in_bin)
                     original_ece_per_bin.append(original_ece)
                     print('ece in bin ', bin + 1, ' :', ece,
-                          ', number of samples: ', samples)
+                        ', number of samples: ', samples)
                     print('accuracy in bin ', bin + 1, ': ', accuracy_in_bin)
                 bin += 1
 
@@ -986,7 +989,7 @@ def bins_temperature_scale_test3(logits, labels, bins_T, iters, bin_boundaries, 
             confidences, _ = torch.max(softmaxes, 1)
         
         print(ece_list)
-        
+                            
         return scaled_logits, ece_per_bin, single_ece_per_bin, original_ece_per_bin
 
 def set_temperature3(logits, labels, iters=1, cross_validate='ece',
