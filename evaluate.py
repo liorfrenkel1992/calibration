@@ -62,7 +62,7 @@ def parseArgs():
     save_loc = './'
     save_plots_loc = './'
     saved_model_name = 'resnet50_cross_entropy_350.model'
-    num_bins = 25
+    num_bins = 5
     model_name = None
     train_batch_size = 128
     test_batch_size = 128

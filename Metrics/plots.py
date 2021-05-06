@@ -232,31 +232,26 @@ def bins_over_conf_plot(bins, diff, save_plots_loc, dataset, model, trained_loss
     plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'over_conf_bins_{}_scaling_{}_{}_{}.pdf'.format(scaling_related, dataset, model, trained_loss)), dpi=40)
 
 
-def temp_bins_plot(single_T, bins_T, bin_boundaries, save_plots_loc, dataset, model, trained_loss, acc_check=False, const_temp=False, divide='reg_divide', ds='val', version=1):
+def temp_bins_plot(single_T, bins_T, bin_boundaries, save_plots_loc, dataset, model, trained_loss, acc_check=False, const_temp=False, divide='reg_divide', ds='val', version=1, cross_validate='ECE'):
     bin_boundaries = torch.linspace(0, bins_T.shape[0], bins_T.shape[0] + 1)
     bin_lowers = bin_boundaries[:-1]
     plt.figure()
     for i in range(bins_T.shape[1]):
         #bin_lowers = bin_boundaries[i][:-1]
-        x_new = x_new = np.linspace(1, bins_T.shape[0], 300)
+        x_new = np.linspace(1, bins_T.shape[0], 300)
         a_BSpline = make_interp_spline(bin_lowers, bins_T[:, i].cpu())
         y_new = a_BSpline(x_new)
         #plt.plot(bin_lowers, bins_T[:, i].cpu(), label='iter number {}'.format(i+1))
-        plt.plot(x_new, y_new, label='Per bin temperature scaling')
+        plt.plot(x_new, y_new, label='CBT ({})'.format(cross_validate))
+        #plt.plot(x_new, y_new, label='Iteration #{}'.format(i))
     #plt.plot(bin_lowers, torch.ones(bins_T.shape[0])*single_T, label='Single temperature')
-    plt.plot(x_new, torch.ones(len(y_new)) * single_T, label='Single temperature scaling')
+    plt.plot(x_new, torch.ones(len(y_new)) * single_T, label='TS ({})'.format(cross_validate))
     plt.xlabel('Bins', fontsize=10)
     plt.xticks(fontsize=10)
     plt.ylabel('Temperature', fontsize=10)
     plt.yticks(fontsize=10)
     plt.legend(fontsize=10)
-    if const_temp:
-        plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'temp_bins_{}_iters_{}_{}_{}_const_temp_ver_{}_{}_{}_smooth.pdf'.format(bins_T.shape[1], dataset, model, trained_loss, version, divide, ds)), dpi=40)
-    else:
-        if acc_check:
-            plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'temp_bins_{}_iters_{}_{}_{}_acc_ver_{}_{}_{}_smooth.pdf'.format(bins_T.shape[1], dataset, model, trained_loss, version, divide, ds)), dpi=40)
-        else:
-            plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'temp_bins_{}_iters_{}_{}_{}_ver_{}_{}_{}_smooth.pdf'.format(bins_T.shape[1], dataset, model, trained_loss, version, divide, ds)), dpi=40)
+    plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'temp_bins_{}_iters_{}_{}_{}_ver_{}_{}_{}_{}_smooth.pdf'.format(bins_T.shape[1], dataset, model, trained_loss, version, divide, ds, cross_validate)), dpi=40)
 
 
 def ece_bin_plot(ece_bin, single_ece_bin, origin_ece_bin, save_plots_loc, dataset, model, trained_loss, divide='reg_divide', ds='val', version=1):
@@ -272,3 +267,54 @@ def ece_bin_plot(ece_bin, single_ece_bin, origin_ece_bin, save_plots_loc, datase
     plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model),
                              'ece_bins_{}_{}_{}_ver_{}_{}_{}_smooth.pdf'.format(dataset, model, trained_loss, version,
                                                                                 divide, ds)), dpi=40)
+    
+    
+def logits_diff_bin_plot(logits_diff_bin, save_plots_loc, dataset, model, trained_loss, divide='reg_divide', ds='val', version=1):
+    plt.figure()
+    plt.plot(range(len(logits_diff_bin)), logits_diff_bin)
+    plt.xlabel('Bins', fontsize=10)
+    plt.xticks(fontsize=10)
+    plt.ylabel('Logits difference', fontsize=10)
+    plt.yticks(fontsize=10)
+    plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model),
+                            'logits_diff_bins_{}_{}_{}_ver_{}_{}_{}.pdf'.format(dataset, model, trained_loss, version,
+                                                                                divide, ds)), dpi=40)
+    
+    
+def temp_bins_plot2(single_T, single_T2, bins_T, bins_T2, bin_boundaries, bin_boundaries2, save_plots_loc, dataset, model, trained_loss, divide='reg_divide', ds='val', version=1):
+    bin_boundaries = torch.linspace(0, bins_T.shape[0], bins_T.shape[0] + 1)
+    bin_lowers = bin_boundaries[:-1]
+    plt.figure()
+    for i in range(bins_T.shape[1]):
+        #bin_lowers = bin_boundaries[i][:-1]
+        #bin_lowers2 = bin_boundaries2[i][:-1]
+        x_new = np.linspace(1, bins_T.shape[0], 300)
+        a_BSpline = make_interp_spline(bin_lowers, bins_T[:, i].cpu())
+        a_BSpline2 = make_interp_spline(bin_lowers, bins_T2[:, i].cpu())
+        y_new = a_BSpline(x_new)
+        y_new2 = a_BSpline2(x_new)
+        #plt.plot(bin_lowers, bins_T[:, i].cpu(), label='iter number {}'.format(i+1))
+        plt.plot(x_new, y_new, label='CBT ResNet-152')
+        plt.plot(x_new, y_new2, label='CBT DenseNet-161')
+        #plt.plot(x_new, y_new, label='Iteration #{}'.format(i))
+    #plt.plot(bin_lowers, torch.ones(bins_T.shape[0])*single_T, label='Single temperature')
+    plt.plot(x_new, torch.ones(len(y_new)) * single_T, label='TS ResNet-152')
+    plt.plot(x_new, torch.ones(len(y_new2)) * single_T2, label='TS DenseNet-161')
+    plt.xlabel('Bins', fontsize=10)
+    plt.xticks(fontsize=10)
+    plt.ylabel('Temperature', fontsize=10)
+    plt.yticks(fontsize=10)
+    plt.legend(fontsize=10)
+    plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'temp_bins_{}_iters_{}_{}_{}_ver_{}_{}_{}_smooth.pdf'.format(bins_T.shape[1], dataset, model, trained_loss, version, divide, ds)), dpi=40)
+    
+    
+def plot_temp_different_bins(save_plots_loc):
+    confidences = torch.linspace(0.5, 1, 51)
+    optim_temps = torch.log(confidences / (1 - confidences0)) / torch.log((confidences - 0.1) / (1 - (confidences - 0.1)))
+    plt.figure()
+    plt.plot(confidences, optim_temps)
+    plt.xlabel('Bins', fontsize=10)
+    plt.xticks(fontsize=10)
+    plt.ylabel('Temperature', fontsize=10)
+    plt.yticks(fontsize=10)
+    plt.savefig(os.path.join(save_plots_loc, 'temp_movements_between_bins.pdf'), dpi=40)
