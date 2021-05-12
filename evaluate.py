@@ -29,7 +29,7 @@ from Metrics.plots import bins_over_conf_plot, pos_neg_ece_bins_plot, temp_bins_
 # Import temperature scaling and NLL utilities
 from temperature_scaling import ModelWithTemperature
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "3"
+os.environ["CUDA_VISIBLE_DEVICES"] = "4"
 
 
 # Dataset params
@@ -62,7 +62,7 @@ def parseArgs():
     save_loc = './'
     save_plots_loc = './'
     saved_model_name = 'resnet50_cross_entropy_350.model'
-    num_bins = 5
+    num_bins = 11
     model_name = None
     train_batch_size = 128
     test_batch_size = 128

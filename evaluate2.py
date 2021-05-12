@@ -23,6 +23,8 @@ from temperature_scaling import set_temperature2, temperature_scale2, class_temp
 # Import unpickling logits and labels
 from evaluate_scripts.unpickle_probs import unpickle_probs
 
+os.environ["CUDA_VISIBLE_DEVICES"] = "5"
+
 def parseArgs():
     default_dataset = 'cifar10'
     dataset_root = './'

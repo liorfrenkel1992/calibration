@@ -242,10 +242,10 @@ def temp_bins_plot(single_T, bins_T, bin_boundaries, save_plots_loc, dataset, mo
         a_BSpline = make_interp_spline(bin_lowers, bins_T[:, i].cpu())
         y_new = a_BSpline(x_new)
         #plt.plot(bin_lowers, bins_T[:, i].cpu(), label='iter number {}'.format(i+1))
-        plt.plot(x_new, y_new, label='CBT ({})'.format(cross_validate))
-        #plt.plot(x_new, y_new, label='Iteration #{}'.format(i))
+        #plt.plot(x_new, y_new, label='CBT ({})'.format(cross_validate))
+        plt.plot(x_new, y_new, label='Iteration #{}'.format(i + 1))
     #plt.plot(bin_lowers, torch.ones(bins_T.shape[0])*single_T, label='Single temperature')
-    plt.plot(x_new, torch.ones(len(y_new)) * single_T, label='TS ({})'.format(cross_validate))
+    #plt.plot(x_new, torch.ones(len(y_new)) * single_T, label='TS ({})'.format(cross_validate))
     plt.xlabel('Bins', fontsize=10)
     plt.xticks(fontsize=10)
     plt.ylabel('Temperature', fontsize=10)
@@ -307,14 +307,23 @@ def temp_bins_plot2(single_T, single_T2, bins_T, bins_T2, bin_boundaries, bin_bo
     plt.legend(fontsize=10)
     plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'temp_bins_{}_iters_{}_{}_{}_ver_{}_{}_{}_smooth.pdf'.format(bins_T.shape[1], dataset, model, trained_loss, version, divide, ds)), dpi=40)
     
+
+def exp_value(confidences, diff):
+    numerator = (-1 + torch.sqrt(1 + 4 * (1 - confidences) / confidences)) / 2  
+    denominator = (-1 + torch.sqrt(1 + 4 * (1 - (confidences - diff)) / (confidences - diff))) / 2 
     
+    return numerator, denominator
+
+
 def plot_temp_different_bins(save_plots_loc):
-    confidences = torch.linspace(0.5, 1, 51)
-    optim_temps = torch.log(confidences / (1 - confidences0)) / torch.log((confidences - 0.1) / (1 - (confidences - 0.1)))
+    confidences = torch.linspace(0.61, 1, 40)
+    #optim_temps = torch.log((1 - confidences) / confidences) / torch.log((1 - (confidences - 0.1)) / (confidences - 0.1))
+    numerator, denominator = exp_value(confidences, 0.1)
+    optim_temps = torch.log(numerator) / torch.log(denominator)
     plt.figure()
     plt.plot(confidences, optim_temps)
-    plt.xlabel('Bins', fontsize=10)
+    plt.xlabel('Previous confidence', fontsize=10)
     plt.xticks(fontsize=10)
     plt.ylabel('Temperature', fontsize=10)
     plt.yticks(fontsize=10)
-    plt.savefig(os.path.join(save_plots_loc, 'temp_movements_between_bins.pdf'), dpi=40)
+    plt.savefig(os.path.join(save_plots_loc, 'temp_movements_between_bins_3_classes.pdf'), dpi=40)
