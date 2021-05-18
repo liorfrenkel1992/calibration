@@ -62,7 +62,7 @@ def parseArgs():
     save_loc = './'
     save_plots_loc = './'
     saved_model_name = 'resnet50_cross_entropy_350.model'
-    num_bins = 11
+    num_bins = 16
     model_name = None
     train_batch_size = 128
     test_batch_size = 128
@@ -241,8 +241,7 @@ if __name__ == "__main__":
     logits, labels = get_logits_labels(test_loader, net)
     conf_matrix, p_accuracy, _, predictions, confidences = test_classification_net_logits(logits, labels)
     
-    if create_plots:
-        reliability_plot(confidences, predictions, labels, save_plots_loc, dataset, args.model, trained_loss, num_bins=num_bins, scaling_related='before', save=True)
+    reliability_plot(confidences, predictions, labels, save_plots_loc, dataset, args.model, trained_loss, num_bins=num_bins, scaling_related='before', save=True)
 
     p_ece = ece_criterion(logits, labels).item()
     p_adaece = adaece_criterion(logits, labels).item()
@@ -321,13 +320,11 @@ if __name__ == "__main__":
             ece_iters_plot(scaled_model, save_plots_loc, dataset, args.model, trained_loss, init_temp, acc_check)
             
     conf_matrix, accuracy, _, predictions, confidences = test_classification_net_logits(logits, labels)
-    if create_plots:
-        reliability_plot(confidences, predictions, labels, save_plots_loc, dataset, args.model, trained_loss, num_bins=num_bins, scaling_related='after', save=True)
+    reliability_plot(confidences, predictions, labels, save_plots_loc, dataset, args.model, trained_loss, num_bins=num_bins, scaling_related='after', save=True)
     
     _, _, _, predictions_const, confidences_const = test_classification_net_logits(logits_const, labels_const)
-    if create_plots:
-        reliability_plot(confidences_const, predictions_const, labels_const, save_plots_loc, dataset, args.model,
-                         trained_loss, num_bins=num_bins, scaling_related='after_const', save=True)
+    reliability_plot(confidences_const, predictions_const, labels_const, save_plots_loc, dataset, args.model,
+                        trained_loss, num_bins=num_bins, scaling_related='after_const', save=True)
 
     adaece = adaece_criterion(logits, labels).item()
     cece = cece_criterion(logits, labels).item()

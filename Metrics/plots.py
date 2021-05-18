@@ -238,32 +238,35 @@ def temp_bins_plot(single_T, bins_T, bin_boundaries, save_plots_loc, dataset, mo
     plt.figure()
     for i in range(bins_T.shape[1]):
         #bin_lowers = bin_boundaries[i][:-1]
-        x_new = np.linspace(1, bins_T.shape[0], 300)
-        a_BSpline = make_interp_spline(bin_lowers, bins_T[:, i].cpu())
-        y_new = a_BSpline(x_new)
-        #plt.plot(bin_lowers, bins_T[:, i].cpu(), label='iter number {}'.format(i+1))
+        #x_new = np.linspace(1, bins_T.shape[0], 300)
+        #a_BSpline = make_interp_spline(bin_lowers, bins_T[:, i].cpu())
+        #y_new = a_BSpline(x_new)
+        plt.plot(bin_lowers, bins_T[:, i].cpu(), label='Iteration #{}'.format(i + 1))
         #plt.plot(x_new, y_new, label='CBT ({})'.format(cross_validate))
-        plt.plot(x_new, y_new, label='Iteration #{}'.format(i + 1))
+        #plt.plot(x_new, y_new, label='Iteration #{}'.format(i + 1))
     #plt.plot(bin_lowers, torch.ones(bins_T.shape[0])*single_T, label='Single temperature')
-    #plt.plot(x_new, torch.ones(len(y_new)) * single_T, label='TS ({})'.format(cross_validate))
-    plt.xlabel('Bins', fontsize=10)
+    #plt.plot(x_new, torch.ones(len(y_new)) * single_T, label='TS'.format(cross_validate))
+    plt.xlabel('Bins', fontsize=16)
     plt.xticks(fontsize=10)
-    plt.ylabel('Temperature', fontsize=10)
+    plt.ylabel('Temperature', fontsize=16)
     plt.yticks(fontsize=10)
-    plt.legend(fontsize=10)
+    plt.legend(fontsize=14)
     plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'temp_bins_{}_iters_{}_{}_{}_ver_{}_{}_{}_{}_smooth.pdf'.format(bins_T.shape[1], dataset, model, trained_loss, version, divide, ds, cross_validate)), dpi=40)
 
 
 def ece_bin_plot(ece_bin, single_ece_bin, origin_ece_bin, save_plots_loc, dataset, model, trained_loss, divide='reg_divide', ds='val', version=1):
     plt.figure()
+    origin_ece_bin = [i * 100 for i in origin_ece_bin]
+    single_ece_bin = [i * 100 for i in single_ece_bin]
+    ece_bin = [i * 100 for i in ece_bin]
     plt.plot(range(len(ece_bin)), origin_ece_bin, label='ECE before scaling')
     plt.plot(range(len(ece_bin)), single_ece_bin, label='ECE after single temp scaling')
     plt.plot(range(len(ece_bin)), ece_bin, label='ECE after per bin temp scaling')
-    plt.xlabel('Bins', fontsize=10)
+    plt.xlabel('Bins', fontsize=16)
     plt.xticks(fontsize=10)
-    plt.ylabel('ECE', fontsize=10)
+    plt.ylabel('ECE(%)', fontsize=16)
     plt.yticks(fontsize=10)
-    plt.legend(fontsize=9)
+    plt.legend(fontsize=10)
     plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model),
                              'ece_bins_{}_{}_{}_ver_{}_{}_{}_smooth.pdf'.format(dataset, model, trained_loss, version,
                                                                                 divide, ds)), dpi=40)
@@ -322,8 +325,28 @@ def plot_temp_different_bins(save_plots_loc):
     optim_temps = torch.log(numerator) / torch.log(denominator)
     plt.figure()
     plt.plot(confidences, optim_temps)
-    plt.xlabel('Previous confidence', fontsize=10)
+    plt.xlabel('Confidence', fontsize=16)
     plt.xticks(fontsize=10)
-    plt.ylabel('Temperature', fontsize=10)
+    plt.ylabel('Temperature', fontsize=16)
     plt.yticks(fontsize=10)
     plt.savefig(os.path.join(save_plots_loc, 'temp_movements_between_bins_3_classes.pdf'), dpi=40)
+    
+
+def ece_iters_plot2(single_ece, single_ece2, ece_list1, ece_list2, save_plots_loc, dataset, model, trained_loss, divide='reg_divide', ds='val', version=1):
+    if len(ece_list1) < len(ece_list2):
+        ece_list1 = ece_list1 + (len(ece_list2) - len(ece_list1)) * [ece_list1[-1]]
+    elif len(ece_list1) > len(ece_list2):
+        ece_list2 = ece_list2 + (len(ece_list1) - len(ece_list2)) * [ece_list2[-1]]
+    ece_list1 = [i * 100 for i in ece_list1]
+    ece_list2 = [i * 100 for i in ece_list2]
+    plt.figure()
+    plt.plot(range(len(ece_list1)), ece_list1, label='CBT ResNet-152')
+    plt.plot(range(len(ece_list2)), ece_list2, label='CBT DenseNet-161')
+    plt.plot(range(len(ece_list1)), torch.ones(len(ece_list1)) * single_ece, label='TS ResNet-152')
+    plt.plot(range(len(ece_list2)), torch.ones(len(ece_list2)) * single_ece2, label='TS DenseNet-161')
+    plt.xlabel('Iterations', fontsize=16)
+    plt.xticks(fontsize=10)
+    plt.ylabel('ECE(%)', fontsize=16)
+    plt.yticks(fontsize=10)
+    plt.legend(fontsize=14)
+    plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'ece_iters_{}_iters_{}_{}_{}_ver_{}_{}_{}_smooth.pdf'.format(len(ece_list1) - 1, dataset, model, trained_loss, version, divide, ds)), dpi=40)

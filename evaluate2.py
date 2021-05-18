@@ -15,7 +15,7 @@ from Metrics.metrics import test_classification_net_logits
 from Metrics.metrics import ECELoss
 from Metrics.metrics2 import ECE, softmax
 from Metrics.plots import temp_bins_plot, ece_bin_plot, logits_diff_bin_plot, reliability_plot, temp_bins_plot2
-from Metrics.plots import plot_temp_different_bins
+from Metrics.plots import plot_temp_different_bins, ece_iters_plot2
 
 # Import temperature scaling and NLL utilities
 from temperature_scaling import set_temperature2, temperature_scale2, class_temperature_scale2, set_temperature3, bins_temperature_scale_test3
@@ -23,7 +23,7 @@ from temperature_scaling import set_temperature2, temperature_scale2, class_temp
 # Import unpickling logits and labels
 from evaluate_scripts.unpickle_probs import unpickle_probs
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "5"
+os.environ["CUDA_VISIBLE_DEVICES"] = "3"
 
 def parseArgs():
     default_dataset = 'cifar10'
@@ -32,7 +32,7 @@ def parseArgs():
     save_loc = './'
     save_plots_loc = './'
     saved_model_name = 'resnet110_cross_entropy_350.model'
-    num_bins = 5
+    num_bins = 35
     model_name = None
     train_batch_size = 128
     test_batch_size = 128
@@ -172,6 +172,7 @@ if __name__ == "__main__":
     #plot_temp_different_bins(save_plots_loc)
     
     p_ece = ece_criterion(logits_test, labels_test).item()
+    #p_ece2 = ece_criterion(logits_test2, labels_test2).item()
     _, p_acc, _, _, _ = test_classification_net_logits(logits_test, labels_test)
     
     # Printing the required evaluation metrics
@@ -186,10 +187,10 @@ if __name__ == "__main__":
             temperature = set_temperature3(logits_val, labels_val, temp_opt_iters, cross_validate=cross_validation_error,
                                         init_temp=init_temp, acc_check=acc_check, const_temp=const_temp, log=args.log, num_bins=num_bins, top_temp=1.2)
         else:                              
-            bins_T, single_temp, bin_boundaries, many_samples, is_acc = set_temperature3(logits_val, labels_val, temp_opt_iters, cross_validate=cross_validation_error, init_temp=init_temp,
-                                                                                         acc_check=acc_check, const_temp=const_temp, log=args.log, num_bins=num_bins, top_temp=1.2)
-            #bins_T2, single_temp2, bin_boundaries2, many_samples2 = set_temperature3(logits_val2, labels_val2, temp_opt_iters, cross_validate=cross_validation_error, init_temp=init_temp,
-            #                                                       acc_check=acc_check, const_temp=const_temp, log=args.log, num_bins=num_bins, top_temp=1.2)
+            bins_T, single_temp, bin_boundaries, many_samples, best_iter = set_temperature3(logits_val, labels_val, temp_opt_iters, cross_validate=cross_validation_error, init_temp=init_temp,
+                                                                                                    acc_check=acc_check, const_temp=const_temp, log=args.log, num_bins=num_bins, top_temp=1.2)
+            #bins_T2, single_temp2, bin_boundaries2, many_samples2, best_iter2 = set_temperature3(logits_val2, labels_val2, temp_opt_iters, cross_validate=cross_validation_error, init_temp=init_temp,
+            #                                                                                    acc_check=acc_check, const_temp=const_temp, log=args.log, num_bins=num_bins, top_temp=1.2)
         
     else:    
         if const_temp:
@@ -211,10 +212,20 @@ if __name__ == "__main__":
                        divide=args.divide, ds='val', version=2, cross_validate=cross_validation_error)
         #temp_bins_plot2(single_temp, single_temp2, bins_T, bins_T2, bin_boundaries, bin_boundaries2, save_plots_loc, dataset, args.model, 
         #                trained_loss, divide=args.divide, ds='val_two_models', version=2)
-        scaled_logits, ece_bin, single_ece_bin, origin_ece_bin = bins_temperature_scale_test3(logits_test, labels_test,
-                                                                                              bins_T, args.temp_opt_iters,
-                                                                                              bin_boundaries, many_samples,
-                                                                                              single_temp, num_bins, is_acc)
+        scaled_logits, ece_bin, single_ece_bin, origin_ece_bin, ece_list = bins_temperature_scale_test3(logits_test, labels_test, bins_T,
+                                                                                                        args.temp_opt_iters,
+                                                                                                        bin_boundaries, many_samples,
+                                                                                                        single_temp, best_iter, num_bins)
+        #scaled_logits2, ece_bin2, single_ece_bin2, origin_ece_bin2, ece_list2 = bins_temperature_scale_test3(logits_test2, labels_test2, bins_T2,
+        #                                                                                                    args.temp_opt_iters,
+        #                                                                                                    bin_boundaries2, many_samples2,
+        #                                                                                                    single_temp2, best_iter2, num_bins)
+        #ece_list = [p_ece] + ece_list
+        #ece_list2 = [p_ece2] + ece_list2
+        ece_single = ece_criterion(temperature_scale2(logits_test, single_temp), labels_test).item()
+        #ece_single2 = ece_criterion(temperature_scale2(logits_test, single_temp2), labels_test).item()
+        #ece_iters_plot2(ece_single, ece_single2, ece_list, ece_list2, save_plots_loc, dataset, args.model, 
+        #                trained_loss, divide=args.divide, ds='val_two_models_iters', version=2)
         _, _, _, predictions, confidences = test_classification_net_logits(scaled_logits, labels_test)
         reliability_plot(confidences, predictions, labels_test, save_plots_loc, dataset, args.model, trained_loss, num_bins=num_bins, scaling_related='after', save=True)
         ece_bin_plot(ece_bin, single_ece_bin, origin_ece_bin, save_plots_loc, dataset, args.model, trained_loss,
@@ -222,7 +233,6 @@ if __name__ == "__main__":
         ece = ece_criterion(scaled_logits, labels_test).item()
     else:
         ece = ece_criterion(class_temperature_scale2(logits_test, csece_temperature), labels_test).item()
-    ece_single = ece_criterion(temperature_scale2(logits_test, single_temp), labels_test).item()
     _, _, _, predictions, confidences = test_classification_net_logits(temperature_scale2(logits_test, single_temp), labels_test)
     reliability_plot(confidences, predictions, labels_test, save_plots_loc, dataset, args.model, trained_loss, num_bins=num_bins, scaling_related='after_single', save=True)
     #_, acc, _, _, _ = test_classification_net_logits(class_temperature_scale2(logits_test, csece_temperature), labels_test)
