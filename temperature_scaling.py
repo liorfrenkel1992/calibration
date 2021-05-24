@@ -35,12 +35,14 @@ class ModelWithTemperature(nn.Module):
         self.iters = iters  # Number of maximum iterations
         self.bin_boundaries = torch.linspace(0, 1, n_bins + 1).unsqueeze(0).repeat((iters, 1)).numpy()
         self.best_iter = 0  # Best iteration for scaling
+        self.temps_iters = torch.ones(iters).cuda()  # Temperatures fot iter single TS
 
 
     def forward(self, input, labels, const_temp=False, bins_temp=False):
         logits = self.model(input)
         if self.const_temp or const_temp:
-            return self.temperature_scale(logits)
+            #return self.temperature_scale(logits)
+            return self.iter_temperature_scale(logits)
         elif bins_temp:
             return self.bins_temperature_scale_test(logits, labels.cuda(), n_bins=self.n_bins)
         else:
@@ -53,6 +55,16 @@ class ModelWithTemperature(nn.Module):
         """
         # Expand temperature to match the size of logits
         return logits / self.temperature
+    
+    def iter_temperature_scale(self, logits):
+        """
+        Perform iterative temperature scaling on logits
+        """
+        scaled_logits = logits.clone()
+        for i in range(self.iters):
+            scaled_logits = scaled_logits / self.temps_iters[i]
+        # Expand temperature to match the size of logits
+        return scaled_logits
     
     def class_temperature_scale(self, logits):
         """
@@ -481,14 +493,44 @@ class ModelWithTemperature(nn.Module):
         ece_val = 10 ** 7
         T_opt_ece = 1.0
         T = 0.1
-        for i in range(100):
-            self.temperature = T
-            self.cuda()
-            after_temperature_ece = ece_criterion(self.temperature_scale(logits), labels).item()
-            if ece_val > after_temperature_ece:
-                T_opt_ece = T
-                ece_val = after_temperature_ece
-            T += 0.1
+        scaled_logits = logits.clone()
+        for i in range(self.iters):
+            T_opt_ece = 1.0
+            T = 0.1
+            for t in range(100):
+                self.temperature = T
+                self.cuda()
+                after_temperature_ece = ece_criterion(self.temperature_scale(scaled_logits), labels).item()
+                if ece_val > after_temperature_ece:
+                    T_opt_ece = T
+                    ece_val = after_temperature_ece
+                T += 0.1
+            self.temps_iters[i] = T_opt_ece
+            self.temperature = T_opt_ece
+            after_temperature_ece = ece_criterion(self.temperature_scale(scaled_logits), labels).item()
+            print('ECE after #{} iteration of single TS: {}'.format(i + 1, after_temperature_ece))
+            softmaxes = F.softmax(scaled_logits, dim=1)
+            original_confidences, _ = torch.max(softmaxes, 1)
+            before_indices = torch.argsort(original_confidences)
+            scaled_logits = scaled_logits / T_opt_ece
+            moved_softmaxes = F.softmax(scaled_logits, dim=1)
+            moved_confidences, _ = torch.max(moved_softmaxes, 1)
+            after_indices = torch.argsort(moved_confidences)
+            moved_bins = torch.zeros(moved_confidences.shape)
+            original_bins = torch.zeros(original_confidences.shape)
+            bin = 0
+            bin_boundaries = torch.linspace(0, 1, n_bins + 1)
+            bin_lowers = bin_boundaries[:-1]
+            bin_uppers = bin_boundaries[1:]
+            for bin_lower, bin_upper in zip(bin_lowers, bin_uppers):
+                in_bin = moved_confidences.gt(bin_lower.item()) * moved_confidences.le(bin_upper.item())
+                moved_bins[in_bin] = bin
+                in_bin = original_confidences.gt(bin_lower.item()) * original_confidences.le(bin_upper.item())
+                original_bins[in_bin] = bin
+                bin += 1
+            bins_moved = torch.eq(original_bins, moved_bins)
+            moved_precentage = bins_moved.float().mean()
+            print('Precentage of moved bins after scaling: ', 100 - (moved_precentage * 100).item())
 
         init_temp = T_opt_ece
         self.temperature = T_opt_ece
@@ -1078,7 +1120,7 @@ def set_temperature3(logits, labels, iters=1, cross_validate='ece',
             
         n_bins = num_bins
         if cross_validate != 'ece':
-            n_bins = 19
+            n_bins = 50
         eps = 1e-5
         nll_val = 10 ** 7
         ece_val = 10 ** 7
@@ -1086,17 +1128,27 @@ def set_temperature3(logits, labels, iters=1, cross_validate='ece',
         T_opt_ece = 1.0
         T = 0.1
         labels = labels.type(torch.LongTensor).cuda()
-        for i in range(100):
-            temperature = T
-            after_temperature_ece = ece_criterion(temperature_scale2(logits, temperature), labels).item()
-            after_temperature_nll = nll_criterion(temperature_scale2(logits, temperature), labels).item()
-            if ece_val > after_temperature_ece:
-                T_opt_ece = T
-                ece_val = after_temperature_ece
-            if nll_val > after_temperature_nll:
-                T_opt_nll = T
-                nll_val = after_temperature_nll
-            T += 0.1
+        temps_iters = torch.ones(iters).cuda()
+        for i in range(iters):
+            temp_logits = logits.clone()
+            for t in range(100):
+                temperature = T
+                after_temperature_ece = ece_criterion(temperature_scale2(temp_logits, temperature), labels).item()
+                after_temperature_nll = nll_criterion(temperature_scale2(temp_logits, temperature), labels).item()
+                if ece_val > after_temperature_ece:
+                    T_opt_ece = T
+                    ece_val = after_temperature_ece
+                if nll_val > after_temperature_nll:
+                    T_opt_nll = T
+                    nll_val = after_temperature_nll
+                T += 0.1
+            if cross_validate == 'ece':
+                temps_iters[i] = T_opt_ece
+            else:
+                temps_iters[i] = T_opt_nll
+            temp_logits = temp_logits / T_opt_ece
+            after_temperature_ece = ece_criterion(temperature_scale2(temp_logits, T_opt_ece), labels).item()
+            print('Temperature for #{} iteration for single TS: {}'.format(i + 1, after_temperature_ece))
             
         if cross_validate == 'ece':
             temperature = T_opt_ece
