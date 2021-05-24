@@ -102,17 +102,17 @@ def bin_strength_plot(confs, preds, labels, num_bins=15):
     
 def pos_neg_ece_bins_plot(bins_vec, bins_ece_over, bins_ece_under, bins_ece_over_after, bins_ece_under_after, save_plots_loc, dataset, model, trained_loss,
                           acc_check=False, scaling_related='before', const_temp=False):
-    plt.figure()
-    plt.scatter(bins_vec, bins_ece_over.cpu())
-    plt.scatter(bins_vec, bins_ece_under.cpu())
+    plt.figure(figsize=(10, 8))
+    plt.scatter(bins_vec, bins_ece_over.cpu(), s=70)
+    plt.scatter(bins_vec, bins_ece_under.cpu(), s=70)
     #plt.scatter(bins_vec, bins_ece_over_after.cpu())
     #plt.scatter(bins_vec, bins_ece_under_after.cpu())
-    plt.xlabel('bins', fontsize=12)
-    plt.xticks(fontsize=10)
-    plt.ylabel('ECE', fontsize=12)
-    plt.yticks(fontsize=10)
+    plt.xlabel('bins', fontsize=26)
+    plt.xticks(fontsize=18)
+    plt.ylabel('ECE', fontsize=26)
+    plt.yticks(fontsize=18)
     #plt.legend(('over-confidence classes', 'under-confidence classes', 'over-confidence classes after scaling', 'under-confidence classes after scaling'), fontsize=10)
-    plt.legend(('over-confidence classes', 'under-confidence classes'), fontsize=10)
+    plt.legend(('over-confidence classes', 'under-confidence classes'), fontsize=22)
     if const_temp:
         plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'over_under_ece_bins_{}_scaling_{}_{}_{}_const_temp.pdf'.format(scaling_related, dataset, model, trained_loss)), dpi=40)
     if acc_check:
@@ -122,13 +122,13 @@ def pos_neg_ece_bins_plot(bins_vec, bins_ece_over, bins_ece_under, bins_ece_over
     plt.close()
 
 def pos_neg_ece_plot(acc, csece_pos, csece_neg, save_plots_loc, dataset, model, trained_loss, acc_check=False, scaling_related='before', const_temp=False):
-    plt.figure()
-    plt.scatter(acc, csece_pos.cpu())
-    plt.xlabel('accuracy', fontsize=12)
-    plt.xticks(fontsize=10)
-    plt.ylabel('ECE', fontsize=12)
-    plt.yticks(fontsize=10)
-    #plt.ylim(0, 0.01)
+    plt.figure(figsize=(10, 8))
+    plt.scatter(acc, csece_pos.cpu(), s=70)
+    plt.xlabel('accuracy', fontsize=26)
+    plt.xticks(fontsize=18)
+    plt.ylabel('ECE', fontsize=26)
+    plt.yticks(fontsize=16)
+    plt.ylim(0, 0.01)
     if const_temp:
         plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'pos_ece_acc_{}_scaling_{}_{}_{}_const_temp.pdf'.format(scaling_related, dataset, model, trained_loss)), dpi=40)
     if acc_check:
@@ -137,13 +137,13 @@ def pos_neg_ece_plot(acc, csece_pos, csece_neg, save_plots_loc, dataset, model, 
         plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'pos_ece_acc_{}_scaling_{}_{}_{}.pdf'.format(scaling_related, dataset, model, trained_loss)), dpi=40)
     plt.close()
 
-    plt.figure()
-    plt.scatter(acc, csece_neg.cpu())
-    plt.xlabel('accuracy', fontsize=12)
-    plt.xticks(fontsize=10)
-    plt.ylabel('ECE', fontsize=12)
-    plt.yticks(fontsize=10)
-    #plt.ylim(0, 0.01)
+    plt.figure(figsize=(10, 8))
+    plt.scatter(acc, csece_neg.cpu(), s=70)
+    plt.xlabel('accuracy', fontsize=26)
+    plt.xticks(fontsize=18)
+    plt.ylabel('ECE', fontsize=26)
+    plt.yticks(fontsize=16)
+    plt.ylim(0, 0.01)
     if const_temp:
         plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'neg_ece_acc_{}_scaling_{}_{}_{}_const_temp.pdf'.format(scaling_related, dataset, model, trained_loss)), dpi=40)
     if acc_check:
@@ -153,12 +153,12 @@ def pos_neg_ece_plot(acc, csece_pos, csece_neg, save_plots_loc, dataset, model, 
     plt.close()
     
 def ece_acc_plot(acc, csece, save_plots_loc, dataset, model, trained_loss, acc_check=False, scaling_related='before', const_temp=False, unc=False):
-    plt.figure()
-    plt.scatter(acc, csece.cpu())
-    plt.xlabel('accuracy', fontsize=12)
-    plt.xticks(fontsize=10)
-    plt.ylabel('ECE', fontsize=12)
-    plt.yticks(fontsize=10)
+    plt.figure(figsize=(10, 8))
+    plt.scatter(acc, csece.cpu(), s=70)
+    plt.xlabel('accuracy', fontsize=26)
+    plt.xticks(fontsize=18)
+    plt.ylabel('ECE', fontsize=26)
+    plt.yticks(fontsize=16)
     #plt.ylim(0, 0.01)
     if const_temp:
         plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'ece_acc_{}_scaling_{}_{}_{}_const_temp.pdf'.format(scaling_related, dataset, model, trained_loss)), dpi=40)

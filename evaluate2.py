@@ -18,7 +18,7 @@ from Metrics.plots import temp_bins_plot, ece_bin_plot, logits_diff_bin_plot, re
 from Metrics.plots import plot_temp_different_bins, ece_iters_plot2
 
 # Import temperature scaling and NLL utilities
-from temperature_scaling import set_temperature2, temperature_scale2, class_temperature_scale2, set_temperature3, bins_temperature_scale_test3
+from temperature_scaling import set_temperature2, temperature_scale2, class_temperature_scale2, set_temperature3, bins_temperature_scale_test3, check_movements
 
 # Import unpickling logits and labels
 from evaluate_scripts.unpickle_probs import unpickle_probs
@@ -169,6 +169,7 @@ if __name__ == "__main__":
     logits_test2 = torch.from_numpy(logits_test2).cuda()
     labels_test2 = torch.squeeze(torch.from_numpy(labels_test2), -1).cuda()
     """
+    #before_indices, after_indices = check_movements(logits_val, const=2)
     #plot_temp_different_bins(save_plots_loc)
     
     p_ece = ece_criterion(logits_test, labels_test).item()

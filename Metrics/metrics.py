@@ -748,8 +748,8 @@ class posnegECEbinsLoss(nn.Module):
         print("Bins over confidences classes count: ", counts_over.sum(dim=1))
         print("Bins under confidences classes count: ", counts_under.sum(dim=1))
                               
-        over_ece_bins /= counts_over.sum(dim=1)
-        under_ece_bins /= counts_under.sum(dim=1)
+        #over_ece_bins /= counts_over.sum(dim=1)
+        #under_ece_bins /= counts_under.sum(dim=1)
         
         return over_ece_bins, under_ece_bins, self.bin_lowers
 

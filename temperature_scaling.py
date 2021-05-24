@@ -1354,4 +1354,13 @@ def set_temperature3(logits, labels, iters=1, cross_validate='ece',
             return temperature
         else:
             return bins_T, temperature, bin_boundaries, many_samples, best_iter
-        
+
+def check_movements(logits, const):
+    softmaxes = F.softmax(logits, dim=1)
+    original_confidences, _ = torch.max(softmaxes, 1)
+    before_indices = torch.argsort(original_confidences)
+    moved_softmaxes = F.softmax(logits / const, dim=1)
+    moved_confidences, _ = torch.max(moved_softmaxes, 1)
+    after_indices = torch.argsort(moved_confidences)
+    
+    return before_indices, after_indices
