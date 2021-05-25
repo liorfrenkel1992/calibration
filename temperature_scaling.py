@@ -493,44 +493,14 @@ class ModelWithTemperature(nn.Module):
         ece_val = 10 ** 7
         T_opt_ece = 1.0
         T = 0.1
-        scaled_logits = logits.clone()
-        for i in range(self.iters):
-            T_opt_ece = 1.0
-            T = 0.1
-            for t in range(100):
-                self.temperature = T
-                self.cuda()
-                after_temperature_ece = ece_criterion(self.temperature_scale(scaled_logits), labels).item()
-                if ece_val > after_temperature_ece:
-                    T_opt_ece = T
-                    ece_val = after_temperature_ece
-                T += 0.1
-            self.temps_iters[i] = T_opt_ece
-            self.temperature = T_opt_ece
-            after_temperature_ece = ece_criterion(self.temperature_scale(scaled_logits), labels).item()
-            print('ECE after #{} iteration of single TS: {}'.format(i + 1, after_temperature_ece))
-            softmaxes = F.softmax(scaled_logits, dim=1)
-            original_confidences, _ = torch.max(softmaxes, 1)
-            before_indices = torch.argsort(original_confidences)
-            scaled_logits = scaled_logits / T_opt_ece
-            moved_softmaxes = F.softmax(scaled_logits, dim=1)
-            moved_confidences, _ = torch.max(moved_softmaxes, 1)
-            after_indices = torch.argsort(moved_confidences)
-            moved_bins = torch.zeros(moved_confidences.shape)
-            original_bins = torch.zeros(original_confidences.shape)
-            bin = 0
-            bin_boundaries = torch.linspace(0, 1, n_bins + 1)
-            bin_lowers = bin_boundaries[:-1]
-            bin_uppers = bin_boundaries[1:]
-            for bin_lower, bin_upper in zip(bin_lowers, bin_uppers):
-                in_bin = moved_confidences.gt(bin_lower.item()) * moved_confidences.le(bin_upper.item())
-                moved_bins[in_bin] = bin
-                in_bin = original_confidences.gt(bin_lower.item()) * original_confidences.le(bin_upper.item())
-                original_bins[in_bin] = bin
-                bin += 1
-            bins_moved = torch.eq(original_bins, moved_bins)
-            moved_precentage = bins_moved.float().mean()
-            print('Precentage of moved bins after scaling: ', 100 - (moved_precentage * 100).item())
+        for i in range(100):
+            self.temperature = T
+            self.cuda()
+            after_temperature_ece = ece_criterion(self.temperature_scale(logits), labels).item()
+            if ece_val > after_temperature_ece:
+                T_opt_ece = T
+                ece_val = after_temperature_ece
+            T += 0.1
 
         init_temp = T_opt_ece
         self.temperature = T_opt_ece
