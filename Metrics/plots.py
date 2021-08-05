@@ -232,7 +232,7 @@ def bins_over_conf_plot(bins, diff, save_plots_loc, dataset, model, trained_loss
     plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'over_conf_bins_{}_scaling_{}_{}_{}.pdf'.format(scaling_related, dataset, model, trained_loss)), dpi=40)
 
 
-def temp_bins_plot(single_T, bins_T, bin_boundaries, save_plots_loc, dataset, model, trained_loss, acc_check=False, const_temp=False, divide='reg_divide', ds='val', version=1, cross_validate='ECE'):
+def temp_bins_plot(single_T, bins_T, bin_boundaries, save_plots_loc, dataset, model, trained_loss, acc_check=False, const_temp=False, divide='reg_divide', ds='val', version=1, cross_validate='ECE', y_name='Temperature'):
     bin_boundaries = torch.linspace(0, bins_T.shape[0], bins_T.shape[0] + 1)
     bin_lowers = bin_boundaries[:-1]
     plt.figure()
@@ -248,9 +248,9 @@ def temp_bins_plot(single_T, bins_T, bin_boundaries, save_plots_loc, dataset, mo
     #plt.plot(x_new, torch.ones(len(y_new)) * single_T, label='TS'.format(cross_validate))
     plt.xlabel('Bins', fontsize=16)
     plt.xticks(fontsize=10)
-    plt.ylabel('Temperature', fontsize=16)
+    plt.ylabel(y_name, fontsize=16)
     plt.yticks(fontsize=10)
-    plt.legend(fontsize=14)
+    # plt.legend(fontsize=14)
     plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'temp_bins_{}_iters_{}_{}_{}_ver_{}_{}_{}_{}_smooth.pdf'.format(bins_T.shape[1], dataset, model, trained_loss, version, divide, ds, cross_validate)), dpi=40)
 
 
@@ -284,28 +284,29 @@ def logits_diff_bin_plot(logits_diff_bin, save_plots_loc, dataset, model, traine
                                                                                 divide, ds)), dpi=40)
     
     
-def temp_bins_plot2(single_T, single_T2, bins_T, bins_T2, bin_boundaries, bin_boundaries2, save_plots_loc, dataset, model, trained_loss, divide='reg_divide', ds='val', version=1):
+def temp_bins_plot2(single_T, single_T2, bins_T, bins_T2, bin_boundaries, bin_boundaries2, save_plots_loc, dataset, model, trained_loss, divide='reg_divide', ds='val', version=1, y_name='Temperature'):
     bin_boundaries = torch.linspace(0, bins_T.shape[0], bins_T.shape[0] + 1)
     bin_lowers = bin_boundaries[:-1]
     plt.figure()
     for i in range(bins_T.shape[1]):
         #bin_lowers = bin_boundaries[i][:-1]
         #bin_lowers2 = bin_boundaries2[i][:-1]
-        x_new = np.linspace(1, bins_T.shape[0], 300)
-        a_BSpline = make_interp_spline(bin_lowers, bins_T[:, i].cpu())
-        a_BSpline2 = make_interp_spline(bin_lowers, bins_T2[:, i].cpu())
-        y_new = a_BSpline(x_new)
-        y_new2 = a_BSpline2(x_new)
-        #plt.plot(bin_lowers, bins_T[:, i].cpu(), label='iter number {}'.format(i+1))
-        plt.plot(x_new, y_new, label='CBT ResNet-152')
-        plt.plot(x_new, y_new2, label='CBT DenseNet-161')
+        # x_new = np.linspace(1, bins_T.shape[0], 300)
+        # a_BSpline = make_interp_spline(bin_lowers, bins_T[:, i].cpu())
+        # a_BSpline2 = make_interp_spline(bin_lowers, bins_T2[:, i].cpu())
+        # y_new = a_BSpline(x_new)
+        # y_new2 = a_BSpline2(x_new)
+        plt.plot(bin_lowers, bins_T[:, i].cpu(), label='Weights')
+        plt.plot(bin_lowers, torch.log(bins_T2[:, i]).cpu(), label='Log Temperatures')
+        # plt.plot(x_new, y_new, label='CBT ResNet-152')
+        # plt.plot(x_new, y_new2, label='CBT DenseNet-161')
         #plt.plot(x_new, y_new, label='Iteration #{}'.format(i))
     #plt.plot(bin_lowers, torch.ones(bins_T.shape[0])*single_T, label='Single temperature')
-    plt.plot(x_new, torch.ones(len(y_new)) * single_T, label='TS ResNet-152')
-    plt.plot(x_new, torch.ones(len(y_new2)) * single_T2, label='TS DenseNet-161')
-    plt.xlabel('Bins', fontsize=10)
+    # plt.plot(x_new, torch.ones(len(y_new)) * single_T, label='TS ResNet-152')
+    # plt.plot(x_new, torch.ones(len(y_new2)) * single_T2, label='TS DenseNet-161')
+    plt.xlabel('Bins', fontsize=16)
     plt.xticks(fontsize=10)
-    plt.ylabel('Temperature', fontsize=10)
+    plt.ylabel(y_name, fontsize=16)
     plt.yticks(fontsize=10)
     plt.legend(fontsize=10)
     plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'temp_bins_{}_iters_{}_{}_{}_ver_{}_{}_{}_smooth.pdf'.format(bins_T.shape[1], dataset, model, trained_loss, version, divide, ds)), dpi=40)
@@ -321,14 +322,24 @@ def exp_value(confidences, diff):
 def plot_temp_different_bins(save_plots_loc):
     confidences = torch.linspace(0.61, 1, 40)
     #optim_temps = torch.log((1 - confidences) / confidences) / torch.log((1 - (confidences - 0.1)) / (confidences - 0.1))
-    numerator, denominator = exp_value(confidences, 0.1)
-    optim_temps = torch.log(numerator) / torch.log(denominator)
+    numerator1, denominator1 = exp_value(confidences, 0.1)
+    numerator2, denominator2 = exp_value(confidences, 0.05)
+    numerator3, denominator3 = exp_value(confidences, 0.03)
+    #numerator4, denominator4 = exp_value(confidences, 0.2)
+    optim_temps1 = torch.log(numerator1) / torch.log(denominator1)
+    optim_temps2 = torch.log(numerator2) / torch.log(denominator2)
+    optim_temps3 = torch.log(numerator3) / torch.log(denominator3)
+    #optim_temps4 = torch.log(numerator4) / torch.log(denominator4)
     plt.figure()
-    plt.plot(confidences, optim_temps)
+    #plt.plot(confidences, optim_temps4, label='\u03B5=0.2')
+    plt.plot(confidences, optim_temps1, label='\u03B5=0.1')
+    plt.plot(confidences, optim_temps2, label='\u03B5=0.05')
+    plt.plot(confidences, optim_temps3, label='\u03B5=0.03')
     plt.xlabel('Confidence', fontsize=16)
     plt.xticks(fontsize=10)
     plt.ylabel('Temperature', fontsize=16)
     plt.yticks(fontsize=10)
+    plt.legend(fontsize=14)
     plt.savefig(os.path.join(save_plots_loc, 'temp_movements_between_bins_3_classes.pdf'), dpi=40)
     
 

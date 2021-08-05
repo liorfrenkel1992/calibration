@@ -114,7 +114,7 @@ def l2_error(confs, preds, labels, num_bins=15):
     return l2_error
 
 
-def test_classification_net_logits(logits, labels):
+def test_classification_net_logits(logits, labels, is_logits=False):
     '''
     This function reports classification accuracy and confusion matrix given logits and labels
     from a model.
@@ -123,8 +123,11 @@ def test_classification_net_logits(logits, labels):
     predictions_list = []
     confidence_vals_list = []
 
-    softmax = F.softmax(logits, dim=1)
-    confidence_vals, predictions = torch.max(softmax, dim=1)
+    if not is_logits:
+        softmax = F.softmax(logits, dim=1)
+        confidence_vals, predictions = torch.max(softmax, dim=1)
+    else:
+        confidence_vals, predictions = torch.max(logits, dim=1)
     labels_list.extend(labels.cpu().numpy().tolist())
     predictions_list.extend(predictions.cpu().numpy().tolist())
     confidence_vals_list.extend(confidence_vals.cpu().numpy().tolist())
@@ -171,9 +174,12 @@ class ECELoss(nn.Module):
         self.bin_uppers = bin_boundaries[1:]
         self.n_bins = n_bins
 
-    def forward(self, logits, labels):
-        softmaxes = F.softmax(logits, dim=1)
-        confidences, predictions = torch.max(softmaxes, 1)
+    def forward(self, logits, labels, is_logits=True):
+        if is_logits:
+            softmaxes = F.softmax(logits, dim=1)
+            confidences, predictions = torch.max(softmaxes, 1)
+        else:
+            confidences, predictions = torch.max(logits, 1)
         accuracies = predictions.eq(labels)
         #counts_over = 0
         #counts_under = 0
