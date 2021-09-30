@@ -114,7 +114,7 @@ def l2_error(confs, preds, labels, num_bins=15):
     return l2_error
 
 
-def test_classification_net_logits(logits, labels, is_logits=False):
+def test_classification_net_logits(logits, labels, is_logits=True):
     '''
     This function reports classification accuracy and confusion matrix given logits and labels
     from a model.
@@ -123,7 +123,7 @@ def test_classification_net_logits(logits, labels, is_logits=False):
     predictions_list = []
     confidence_vals_list = []
 
-    if not is_logits:
+    if is_logits:
         softmax = F.softmax(logits, dim=1)
         confidence_vals, predictions = torch.max(softmax, dim=1)
     else:
