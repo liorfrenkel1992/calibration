@@ -10,7 +10,9 @@ import math
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import math
 import torch
+from torch.nn import functional as F
 from scipy.interpolate import make_interp_spline
 plt.rcParams.update({'font.size': 20})
 
@@ -297,7 +299,7 @@ def temp_bins_plot2(single_T, single_T2, bins_T, bins_T2, bin_boundaries, bin_bo
         # y_new = a_BSpline(x_new)
         # y_new2 = a_BSpline2(x_new)
         plt.plot(bin_lowers, bins_T[:, i].cpu(), label='Weights')
-        plt.plot(bin_lowers, torch.log(bins_T2[:, i]).cpu(), label='Log Temperatures')
+        plt.plot(bin_lowers, (1 / bins_T2[:, i]).cpu(), label=r'$1/Temperatures$')
         # plt.plot(x_new, y_new, label='CBT ResNet-152')
         # plt.plot(x_new, y_new2, label='CBT DenseNet-161')
         #plt.plot(x_new, y_new, label='Iteration #{}'.format(i))
@@ -361,3 +363,79 @@ def ece_iters_plot2(single_ece, single_ece2, ece_list1, ece_list2, save_plots_lo
     plt.yticks(fontsize=10)
     plt.legend(fontsize=14)
     plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'ece_iters_{}_iters_{}_{}_{}_ver_{}_{}_{}_smooth.pdf'.format(len(ece_list1) - 1, dataset, model, trained_loss, version, divide, ds)), dpi=40)
+    
+def plot_trajectory(save_plots_loc):  # For probabilities [0.6, 0.3, 0.1]
+    weights = torch.linspace(0, 1, 100).unsqueeze(-1)
+    temperatures = torch.linspace(1, 100, 10000).unsqueeze(-1)
+    starting_point = torch.tensor([0.6, 0.3]).unsqueeze(0)
+    starting_logits = torch.tensor([math.log(0.6), math.log(0.3), math.log(0.1)])
+    # starting_logits = torch.tensor([2.2, 1.525, 0.5])
+    ts_points = [F.softmax(starting_logits / temperature, dim=0) for temperature in temperatures]
+    ts_points = torch.stack(ts_points)
+    n_classes = starting_point.shape[1] + 1
+    ws_points = torch.matmul(weights, (1 / n_classes) * torch.ones(starting_point.shape)) + torch.matmul(1 - weights, starting_point)
+    ws_points_full = torch.cat((ws_points, (1 - torch.sum(ws_points, 1)).unsqueeze(-1)), 1)
+    weights_ent = -torch.sum(ws_points_full * torch.log2(ws_points_full), 1)
+    softmaxes_100 = torch.tensor([8.4042679500e-13, 1.4278050742e-08, 3.9925965312e-11, 7.8529644267e-14,
+        1.1687384394e-10, 9.7083494401e-14, 7.9007286824e-13, 1.1496912363e-13,
+        5.3773496073e-12, 7.6878958755e-10, 8.9035365747e-09, 5.3947623278e-12,
+        2.4426896617e-10, 2.2383541201e-11, 1.2707822294e-10, 2.1816673468e-10,
+        5.0172353387e-15, 1.6286461112e-12, 5.1560413925e-12, 8.6647043707e-12,
+        1.8531972623e-09, 2.7630087107e-10, 7.1155463308e-16, 3.7386840152e-11,
+        5.1252758981e-11, 3.1181262433e-11, 2.6755674298e-06, 9.9959415197e-01,
+        1.9884007635e-11, 1.1077156523e-04, 1.7637266647e-11, 2.2995503279e-09,
+        7.3481587606e-06, 1.2129663940e-09, 3.2103027479e-05, 5.2368401282e-11,
+        2.3453745612e-09, 2.9135565488e-11, 2.9145277771e-12, 3.5043259961e-11,
+        9.6558103581e-14, 1.9227650583e-09, 1.5236486206e-07, 4.5127812598e-09,
+        8.7795990112e-05, 3.4632095776e-05, 3.3900747098e-08, 5.3773188159e-12,
+        4.9334299666e-13, 4.7792599739e-11, 9.7179556069e-12, 2.9196653486e-05,
+        1.2558685400e-15, 1.9376671101e-10, 2.1402189916e-12, 1.7672345792e-12,
+        4.2892519397e-11, 8.4134947273e-12, 1.5762311595e-11, 2.2964830992e-12,
+        1.1481499413e-14, 4.4955605211e-11, 2.6382507290e-11, 1.0882557433e-07,
+        3.2325153665e-10, 1.4755903444e-10, 2.8219235976e-11, 1.1946493714e-06,
+        5.6229808136e-12, 4.9992823214e-09, 1.2134488726e-11, 2.2948927203e-09,
+        1.0463446776e-09, 2.0963939562e-07, 1.3484322992e-08, 1.1520114862e-09,
+        1.9648471489e-13, 6.5380464775e-07, 2.2771805561e-06, 6.8640011210e-12,
+        2.4578919692e-05, 2.0577129952e-13, 2.1242145684e-13, 2.3415527872e-13,
+        4.5339165755e-10, 4.0936140522e-07, 9.8099343132e-16, 9.6455538001e-11,
+        4.4561368484e-11, 4.3079886880e-10, 1.0865559563e-09, 7.0311572927e-05,
+        6.6880915140e-14, 4.8056293167e-08, 3.0499626199e-16, 5.0754581093e-11,
+        4.9211958293e-12, 9.5986638371e-07, 1.9191167766e-08, 1.8387422074e-07]).unsqueeze(0)
+    ws_points2 = torch.matmul(weights, (1 / n_classes) * torch.ones(softmaxes_100.shape)) + torch.matmul(1 - weights, softmaxes_100)
+    weights_ent2 = -torch.sum(ws_points2 * torch.log2(ws_points2), 1)
+    plt.figure()
+    plt.plot(ws_points[:, 0], ws_points[:, 1], label='Weight Scaling')
+    plt.plot(ts_points[:, 0], ts_points[:, 1], label='Temperature Scaling')
+    plt.xlabel(r'$p_1$', fontsize=16)
+    plt.xticks(fontsize=10)
+    plt.ylabel(r'$p_2$', fontsize=16)
+    plt.yticks(fontsize=10)
+    plt.legend(fontsize=10)
+    plt.savefig(os.path.join(save_plots_loc, 'trajectories.pdf'), dpi=40)
+    plt.close()
+    
+    plt.figure()
+    plt.plot(ws_points[:, 0], weights_ent)
+    plt.xlabel(r'$p_1$', fontsize=16)
+    plt.xticks(fontsize=10)
+    plt.ylabel('Entropy', fontsize=16)
+    plt.yticks(fontsize=10)
+    plt.savefig(os.path.join(save_plots_loc, 'entropy.pdf'), dpi=40)
+    
+    plt.figure()
+    plt.plot(ws_points2.max(1)[0], weights_ent2)
+    plt.xlabel('Confidence', fontsize=16)
+    plt.xticks(fontsize=10)
+    plt.ylabel('Entropy', fontsize=16)
+    plt.yticks(fontsize=10)
+    plt.savefig(os.path.join(save_plots_loc, 'entropy_100.pdf'), dpi=40)
+
+def conf_acc_diff_plot(conf_acc_diff, save_plots_loc, dataset, model, trained_loss, divide='reg_divide', ds='val', version=1):
+    plt.figure()
+    plt.plot(range(len(conf_acc_diff)), conf_acc_diff)
+    plt.xlabel('Bins', fontsize=16)
+    plt.xticks(fontsize=10)
+    plt.ylabel('Confidence - Accuracy', fontsize=16)
+    plt.yticks(fontsize=10)
+    plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'conf_acc_diff_bins_{}_{}_{}_{}_ver_{}_{}_{}.pdf'.format(len(conf_acc_diff), dataset, model, trained_loss, version, divide, ds)), dpi=40)
+    
