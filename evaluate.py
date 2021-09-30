@@ -29,7 +29,7 @@ from Metrics.plots import bins_over_conf_plot, pos_neg_ece_bins_plot, temp_bins_
 # Import temperature scaling and NLL utilities
 from temperature_scaling import ModelWithTemperature
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "4"
+os.environ["CUDA_VISIBLE_DEVICES"] = "5"
 
 
 # Dataset params
@@ -125,6 +125,9 @@ def parseArgs():
                         help="whether to calculate ECE for each bin separately")
     parser.add_argument("-dists", action="store_true", dest="dists",
                         help="whether to optimize ECE by dists from uniform probability")
+    parser.add_argument("-grid", action="store_true", dest="grid",
+                        help="whether to apply a grid search to find the optimal temperature/weight")
+    parser.set_defaults(grid=True)
 
     return parser.parse_args()
 
@@ -302,13 +305,13 @@ if __name__ == "__main__":
         print ('Classes accuracies: ' + str(p_acc))
 
 
-    scaled_model = ModelWithTemperature(net, args.log, const_temp=const_temp, bins_temp=args.bins_temp, n_bins=num_bins, iters=temp_opt_iters, dists=args.dists)
+    scaled_model = ModelWithTemperature(net, args.log, const_temp=const_temp, bins_temp=args.bins_temp, n_bins=num_bins, iters=temp_opt_iters, dists=args.dists, grid=args.grid)
     if args.bins_temp:
         scaled_model.set_bins_temperature2(val_loader, cross_validate=cross_validation_error, init_temp=init_temp, acc_check=acc_check, top_temp=10)
         temp_bins_plot(scaled_model.temperature, scaled_model.bins_T, scaled_model.bin_boundaries, save_plots_loc, dataset, args.model, trained_loss, version=1)
         logits, labels = get_logits_labels_const(test_loader, scaled_model, bins_temp=True)
     elif args.dists:
-        scaled_model.set_bins_dists(val_loader)
+        scaled_model.set_single_dists(val_loader)
         # temp_bins_plot(scaled_model.temperature, scaled_model.bins_T, scaled_model.bin_boundaries, save_plots_loc, dataset, args.model, trained_loss, version=1)
         logits, labels = get_logits_labels_const(test_loader, scaled_model)
     else:
@@ -326,10 +329,12 @@ if __name__ == "__main__":
     
     if const_temp:
         T_opt = scaled_model.get_temperature()
-    else:
+    elif args.bins_temp:
         T_opt, T_csece_opt = scaled_model.get_temperature()
         if create_plots:
             ece_iters_plot(scaled_model, save_plots_loc, dataset, args.model, trained_loss, init_temp, acc_check)
+    else:
+        T_opt = scaled_model.get_temperature()
             
     conf_matrix, accuracy, _, predictions, confidences = test_classification_net_logits(logits, labels, is_logits=False)
     reliability_plot(confidences, predictions, labels, save_plots_loc, dataset, args.model, trained_loss, num_bins=num_bins, scaling_related='after', save=True)
