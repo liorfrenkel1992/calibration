@@ -22,7 +22,7 @@ class ModelWithTemperature(nn.Module):
         NB: Output of the neural network should be the classification logits,
             NOT the softmax (or log softmax)!
     """
-    def __init__(self, model, log=True, const_temp=False, bins_temp=False, n_bins=15, iters=1, dists=False):
+    def __init__(self, model, log=True, const_temp=False, bins_temp=False, n_bins=15, iters=1, dists=False, grid=True):
         super(ModelWithTemperature, self).__init__()
         self.model = model
         self.temperature = 1.0
@@ -37,6 +37,7 @@ class ModelWithTemperature(nn.Module):
         self.bin_boundaries = torch.linspace(0, 1, n_bins + 1).unsqueeze(0).repeat((iters, 1)).numpy()
         self.best_iter = 0  # Best iteration for scaling
         self.temps_iters = torch.ones(iters).cuda()  # Temperatures fot iter single TS
+        self.grid = grid  # Applying grid search to find optimal weight
 
 
     def forward(self, input, labels, const_temp=False, bins_temp=False):
@@ -47,7 +48,7 @@ class ModelWithTemperature(nn.Module):
         elif bins_temp:
             return self.bins_temperature_scale_test(logits, labels.cuda(), n_bins=self.n_bins)
         elif self.dists:
-            return self.bins_dists_scale_test(logits, labels.cuda(), n_bins=self.n_bins)
+            return self.single_dists_test(logits)
         else:
             return self.class_temperature_scale(logits)
 
@@ -128,7 +129,7 @@ class ModelWithTemperature(nn.Module):
         new_softmaxes = F.softmax(logits, dim=1)
         confidences, predictions = torch.max(new_softmaxes, 1)
         accuracies = predictions.eq(labels)
-        confidences[confidences > 0.99999] = 0.99999
+        # confidences[confidences > 0.99999] = 0.99999
         ece_list = []
         n_classes = logits.shape[1]
         for i in range(self.best_iter + 1):
@@ -140,7 +141,7 @@ class ModelWithTemperature(nn.Module):
                 in_bin = confidences.gt(bin_lower.item()) * confidences.le(bin_upper.item())
                 prop_in_bin = in_bin.float().mean()
                 accuracies_temp = accuracies[in_bin]
-                # accuracy_in_bin = accuracies_temp.float().mean().item()
+                origin_accuracy_in_bin = accuracies_temp.float().mean().item()
                 accuracy_in_bin = min(accuracies_temp.float().mean().item(), 0.99)
                 accuracy_in_bin = max(accuracy_in_bin, 0.01)
                 if any(in_bin):
@@ -152,7 +153,7 @@ class ModelWithTemperature(nn.Module):
                     samples = new_softmaxes[in_bin].shape[0]
                     print('ece in bin ', bin + 1, ' :', (prop_in_bin * after_temperature).item(),
                           ', number of samples: ', samples)
-                    print('accuracy in bin ', bin + 1, ': ', accuracy_in_bin)
+                    print('accuracy in bin ', bin + 1, ': ', origin_accuracy_in_bin)
                 bin += 1
 
             new_softmaxes /= torch.sum(new_softmaxes, 1, keepdim=True)
@@ -172,10 +173,9 @@ class ModelWithTemperature(nn.Module):
         # confidence, predictions = torch.max(softmaxes, 1, keepdim=True)
         # sorted_conf, sorted_pred = torch.sort(softmaxes, 1, True)
         n_classes = logits.shape[1]
-        dists = softmaxes - 1 / n_classes
         
         # softmaxes = softmaxes - self.weight * dists
-        softmaxes = (1 - self.weight) * softmaxes + self.weight * 1 / n_classes
+        softmaxes = self.weight * softmaxes + (1 - self.weight) * 1 / n_classes
         # conf = sorted_conf[:, 0]
         # second_conf = sorted_conf[:, 1]
         # new_values = (1 - self.weight) * conf + self.weight * second_conf
@@ -367,7 +367,7 @@ class ModelWithTemperature(nn.Module):
         elif self.bins_temp:
             return self.temperature, self.bins_T
         elif self.dists:
-            return self.temperature, self.bins_T
+            return self.weight
         else:
             return self.temperature, self.csece_temperature
         
@@ -714,7 +714,7 @@ class ModelWithTemperature(nn.Module):
                     
             softmaxes = F.softmax(logits, dim=1)
             confidences, predictions = torch.max(softmaxes, 1)
-            confidences[confidences > 0.99999] = 0.99999
+            # confidences[confidences > 0.99999] = 0.99999
             accuracies = predictions.eq(labels)
             n_classes = logits.shape[1]
                             
@@ -727,7 +727,6 @@ class ModelWithTemperature(nn.Module):
                 bin_lowers = self.bin_boundaries[i][:-1]
                 bin_uppers = self.bin_boundaries[i][1:]
                 
-                dists = softmaxes - 1 / n_classes
                 for bin_lower, bin_upper in zip(bin_lowers, bin_uppers):
                     bece_val = 10 ** 7
                     in_bin = confidences.gt(bin_lower.item()) * confidences.le(bin_upper.item())
@@ -740,28 +739,44 @@ class ModelWithTemperature(nn.Module):
                         continue
                     if any(in_bin):
                         init_temp_value = T_bece[in_bin][0].item()
-                        T = 0.1
-                        accuracies_temp = accuracies[in_bin]
-                        accuracy_in_bin = min(accuracies_temp.float().mean().item(), 0.99)
+                        origin_avg_confidence_in_bin = confidences[in_bin].mean()
+                        origin_accuracy_in_bin = accuracies[in_bin].float().mean().item()
+                        accuracy_in_bin = min(origin_accuracy_in_bin, 0.99)
                         accuracy_in_bin = max(accuracy_in_bin, 0.01)
-                        for t in range(100):
+                        
+                        if self.grid:
+                            T = 0.1
+                            for t in range(100):
+                                temp_softmaxes = softmaxes.clone()
+                                T_bece[in_bin] = T
+                                temp_softmaxes[in_bin] = T * temp_softmaxes[in_bin] + (1 - T) * 1 / n_classes
+                                temp_softmaxes /= torch.sum(temp_softmaxes, 1, keepdim=True)
+                                confidences_temp, _ = torch.max(temp_softmaxes[in_bin], 1)
+                                self.bece_temperature = T_bece
+                                
+                                avg_confidence_in_bin = confidences_temp.mean()
+                                after_temperature = torch.abs(accuracy_in_bin - avg_confidence_in_bin)
+                                
+                                if bece_val > after_temperature + eps:
+                                    T_opt_bece[in_bin] = T
+                                    bece_val = after_temperature
+                                    #print('conf-acc: ', (avg_confidence_in_bin - accuracy_in_bin).item())
+                                    #print('temp: ', T)
+                                T += 0.1
+                        
+                        else:    
+                            weight_i = (origin_accuracy_in_bin - 1/n_classes) / (origin_avg_confidence_in_bin - 1/n_classes)
+                            weight_i = max(0, min(1, weight_i.item()))
+                            T_opt_bece[in_bin] = weight_i
+                        
+                            # Compute bin's updated ECE
                             temp_softmaxes = softmaxes.clone()
-                            T_bece[in_bin] = T
-                            temp_softmaxes[in_bin] = T * temp_softmaxes[in_bin] + (1 - T) * 1 / n_classes
+                            temp_softmaxes[in_bin] = weight_i * temp_softmaxes[in_bin] + (1 - weight_i) * 1 / n_classes
                             temp_softmaxes /= torch.sum(temp_softmaxes, 1, keepdim=True)
                             confidences_temp, _ = torch.max(temp_softmaxes[in_bin], 1)
-                            self.bece_temperature = T_bece
-                            
                             avg_confidence_in_bin = confidences_temp.mean()
-                            after_temperature = torch.abs(accuracy_in_bin - avg_confidence_in_bin)
-                            
-                            if bece_val > after_temperature + eps:
-                                T_opt_bece[in_bin] = T
-                                bece_val = after_temperature
-                                #print('conf-acc: ', (avg_confidence_in_bin - accuracy_in_bin).item())
-                                #print('temp: ', T)
-                            T += 0.1
-                            
+                            bece_val = torch.abs(origin_accuracy_in_bin - avg_confidence_in_bin)
+                        
                         T_bece[in_bin] = T_opt_bece[in_bin]
                         self.bins_T[bin, i] = T_opt_bece[in_bin][0].item()
                         
@@ -860,40 +875,53 @@ class ModelWithTemperature(nn.Module):
             print('After temperature - ECE: %.3f' % (after_temperature_ece))
     
         softmaxes = F.softmax(logits, 1)
-        confidence, predictions = torch.max(softmaxes, 1, keepdim=True)
-        sorted_conf, sorted_pred = torch.sort(softmaxes, 1, True)
         n_classes = logits.shape[1]
-        dists = softmaxes - 1 / n_classes
-        
         eps = 1e-6
         ece_val = 10 ** 7
         T_opt_ece = 1.0
-        T = 0.0
-        for i in range(1000):
-            temp_softmaxes = softmaxes.clone()
-            self.weight = T
-            # temp_softmaxes = temp_softmaxes - T * dists
-            temp_softmaxes = (1 - T) * temp_softmaxes + T * 1 / n_classes
-            # conf = sorted_conf[:, 0]
-            # second_conf = sorted_conf[:, 1]
-            # new_values = (1 - T) * conf + T * second_conf
-            # temp_softmaxes.scatter_(1, predictions, new_values.unsqueeze(-1))
-            temp_softmaxes /= torch.sum(temp_softmaxes, 1, keepdim=True)
-            after_temperature_ece = ece_criterion(temp_softmaxes, labels, is_logits=False).item()
 
-            if ece_val > after_temperature_ece + eps:
-                T_opt_ece = T
-                ece_val = after_temperature_ece
-            T += 0.001
-
-        self.weight = T_opt_ece
+        if not self.grid:
+            confidences, predictions = torch.max(softmaxes, 1)
+            accuracies = predictions.eq(labels)
+            n_bins = 15
+            
+            n, bin_boundaries = np.histogram(confidences.cpu().detach(), histedges_equalN(confidences.cpu().detach(), n_bins=n_bins))
+            bin_lowers = bin_boundaries[:-1]
+            bin_uppers = bin_boundaries[1:]
+            
+            numerator = []
+            dominator = []
+            
+            for bin_lower, bin_upper in zip(bin_lowers, bin_uppers):
+                in_bin = confidences.gt(bin_lower.item()) * confidences.le(bin_upper.item())
+                if any(in_bin):
+                    accuracies_temp = accuracies[in_bin]
+                    accuracy_in_bin = accuracies_temp.float().mean().item()
+                    confidence_in_bin = confidences[in_bin].mean()
+                    numerator.append((confidence_in_bin - 1 / n_classes) * (accuracy_in_bin - 1 / n_classes))
+                    dominator.append((confidence_in_bin - 1 / n_classes) * (confidence_in_bin - 1 / n_classes))
+            
+            numerator = torch.Tensor(numerator)
+            dominator = torch.Tensor(dominator)
+            self.weight = torch.sum(numerator) / torch.sum(dominator)
         
-        # softmaxes = softmaxes - self.weight * dists
-        softmaxes = (1 - self.weight) * softmaxes + self.weight * 1 / n_classes
-        # conf = sorted_conf[:, 0]
-        # second_conf = sorted_conf[:, 1]
-        # new_values = (1 - self.weight) * conf + self.weight * second_conf
-        # softmaxes.scatter_(1, predictions, new_values.unsqueeze(-1))
+        else:
+            T = 0.001
+            for i in range(1000):
+                temp_softmaxes = softmaxes.clone()
+                self.weight = T
+                temp_softmaxes = T * temp_softmaxes + (1 - T) * 1 / n_classes
+                temp_softmaxes /= torch.sum(temp_softmaxes, 1, keepdim=True)
+                after_temperature_ece = ece_criterion(temp_softmaxes, labels, is_logits=False).item()
+
+                if ece_val > after_temperature_ece + eps:
+                    T_opt_ece = T
+                    ece_val = after_temperature_ece
+                T += 0.001
+            
+            self.weight = T_opt_ece
+        
+        softmaxes = self.weight * softmaxes + (1 - self.weight) * 1 / n_classes
         softmaxes /= torch.sum(softmaxes, 1, keepdim=True)
 
         # Calculate ECE after temperature scaling
@@ -1522,7 +1550,7 @@ def bins_temperature_scale_test4(logits, labels, bins_T, iters, bin_boundaries, 
         softmaxes = F.softmax(logits, dim=1)
         confidences, predictions = torch.max(softmaxes, 1)
         accuracies = predictions.eq(labels)
-        confidences[confidences > 0.99999] = 0.99999
+        # confidences[confidences > 0.99999] = 0.99999
         logits_np = logits.cpu().detach().numpy()
         n_classes = logits.shape[1]
         ece_list = []
@@ -1536,7 +1564,6 @@ def bins_temperature_scale_test4(logits, labels, bins_T, iters, bin_boundaries, 
             print('\n')            
             bin_lowers = bin_boundaries[i][:-1]
             bin_uppers = bin_boundaries[i][1:]
-            dists = softmaxes - 1 / n_classes
             for bin_lower, bin_upper in zip(bin_lowers, bin_uppers):
                 in_bin = confidences.gt(bin_lower.item()) * confidences.le(bin_upper.item())
                 if any(in_bin):
@@ -1544,8 +1571,6 @@ def bins_temperature_scale_test4(logits, labels, bins_T, iters, bin_boundaries, 
                     original_ece_per_bin.append(original_ece)
                     weight = bins_T[bin, i]
                     softmaxes[in_bin] = weight * softmaxes[in_bin] + (1 - weight) * 1 / n_classes
-                    # softmaxes[in_bin] = softmaxes[in_bin] - bins_T[bin, i] * dists[in_bin]
-                    # softmaxes /= torch.sum(softmaxes, 1, keepdim=True)
                     ece, _, _, _ = bin_ece(softmaxes[in_bin], accuracies, in_bin, is_logits=False)
                     ece_per_bin.append(ece)
                     single_logits = logits[in_bin] / single_temp
@@ -1665,7 +1690,7 @@ def set_temperature4(logits, labels, iters=1, cross_validate='ece',
                 
         softmaxes = F.softmax(logits, dim=1)
         confidences, predictions = torch.max(softmaxes, 1)
-        confidences[confidences > 0.99999] = 0.99999
+        # confidences[confidences > 0.99999] = 0.99999
         accuracies = predictions.eq(labels)
         
         bin_boundaries = torch.linspace(0, 1, n_bins + 1).unsqueeze(0).repeat((iters, 1)).numpy()
@@ -1687,9 +1712,11 @@ def set_temperature4(logits, labels, iters=1, cross_validate='ece',
                     count_high_acc += 1
         if count_high_acc > int(n_bins/2):  # model is highly accurated
             is_acc = True
-            confidences[confidences > 0.99] = 0.99
+            confidences[confidences > 0.9999] = 0.9999
 
         n_classes = logits.shape[1]
+        
+        conf_acc_diff = []
         
         for i in range(iters):
             T_opt_bece = init_temp*torch.ones(logits.shape[0]).cuda()
@@ -1705,12 +1732,9 @@ def set_temperature4(logits, labels, iters=1, cross_validate='ece',
             else:
                 bin_boundaries[i] = bin_boundaries[i - 1]
             
-            #bin_boundaries = torch.linspace(0, 1, n_bins + 1)
             bin_lowers = bin_boundaries[i][:-1]
             bin_uppers = bin_boundaries[i][1:]
             
-            dists = softmaxes - 1 / n_classes
-
             for bin_lower, bin_upper in zip(bin_lowers, bin_uppers):
                 in_bin = confidences.gt(bin_lower.item()) * confidences.le(bin_upper.item())
                 prop_in_bin = in_bin.float().mean()
@@ -1718,6 +1742,10 @@ def set_temperature4(logits, labels, iters=1, cross_validate='ece',
                     samples = T_bece[in_bin].shape[0]
                     print('number of samples in bin {0}: {1}'.format(bin + 1, samples))
                     few_examples[bin] = samples
+                    if bin == 0:
+                        conf_acc_diff.append(0)
+                    else:
+                        conf_acc_diff.append(conf_acc_diff[-1])
                     bin += 1
                     continue
                 if any(in_bin):
@@ -1726,11 +1754,14 @@ def set_temperature4(logits, labels, iters=1, cross_validate='ece',
                     origin_accuracy_in_bin = accuracies_temp.float().mean().item()
                     origin_avg_confidence_in_bin = confidences[in_bin].mean()
                     accuracy_in_bin = min(origin_accuracy_in_bin, 0.99)
-                    accuracy_in_bin = max(accuracy_in_bin, 0.1)
+                    accuracy_in_bin = max(accuracy_in_bin, 0.01)
+                    
+                    conf_acc_diff.append(origin_avg_confidence_in_bin - origin_accuracy_in_bin)
                     
                     if is_acc:
                         accuracy_in_bin = origin_accuracy_in_bin
                         
+                    """
                     bece_val = torch.abs(accuracy_in_bin - origin_avg_confidence_in_bin)
                     # bece_val = ece_criterion(logits, labels)
                     for t in range(100):
@@ -1750,19 +1781,30 @@ def set_temperature4(logits, labels, iters=1, cross_validate='ece',
                             bece_val = after_temperature                      
                         
                         T += 0.01
-                      
+                    """
+                    
+                    weight_i = (origin_accuracy_in_bin - 1/n_classes) / (origin_avg_confidence_in_bin - 1/n_classes)
+                    # weight_i = max(0, min(1, weight_i.item()))
+                    T_opt_bece[in_bin] = weight_i
+                    
+                    # Compute bin's updated ECE
+                    temp_softmaxes = softmaxes.clone()
+                    temp_softmaxes[in_bin] = weight_i * temp_softmaxes[in_bin] + (1 - weight_i) * 1 / n_classes
+                    temp_softmaxes /= torch.sum(temp_softmaxes, 1, keepdim=True)
+                    confidences_temp, _ = torch.max(temp_softmaxes[in_bin], 1)
+                    avg_confidence_in_bin = confidences_temp.mean()
+                    bece_val = torch.abs(origin_accuracy_in_bin - avg_confidence_in_bin)
+                    
                     original_bins[in_bin] = bin
                     T_bece[in_bin] = T_opt_bece[in_bin]
                     bins_T[bin, i] = T_opt_bece[in_bin][0].item()
-                    # softmaxes[in_bin] = softmaxes[in_bin] - bins_T[bin, i] * dists[in_bin]
-                    # softmaxes /= torch.sum(softmaxes, 1, keepdim=True)
-                    # confidences, _ = torch.max(softmaxes, 1)
                     samples = T_bece[in_bin].shape[0]
                     ece_in_iter += prop_in_bin * bece_val
                                             
                     print('original average confidence in bin ', bin + 1, ' :', origin_avg_confidence_in_bin.item())
                     print('ece in bin ', bin+1, ' :', (prop_in_bin * bece_val).item(), ', number of samples: ', samples)
                     print('accuracy in bin ', bin+1, ': ', origin_accuracy_in_bin)
+                      
 
                 bin += 1
 
@@ -1826,17 +1868,16 @@ def set_temperature4(logits, labels, iters=1, cross_validate='ece',
         if const_temp:
             return temperature
         else:
-            return bins_T, temperature, bin_boundaries, best_iter
+            return bins_T, temperature, bin_boundaries, best_iter, conf_acc_diff
         
-def bins_temperature_scale_test5(logits, temperature):
+def bins_temperature_scale_test5(logits, weight):
         """
-        Perform temperature scaling on logits
+        Perform weight scaling on logits
         """
         softmaxes = F.softmax(logits, 1)
         n_classes = logits.shape[1]
-        dists = softmaxes - 1 / n_classes
         
-        softmaxes = softmaxes - temperature * dists
+        softmaxes = weight * softmaxes + (1 - weight) * 1 / n_classes
                                     
         return softmaxes
 
@@ -1847,38 +1888,60 @@ def set_temperature5(logits, labels, log=True):
     ece_criterion = ECELoss().cuda()
 
     # Calculate ECE before temperature scaling
-    before_temperature_ece = ece_criterion(logits, labels).item()
+    before_weight_ece = ece_criterion(logits, labels).item()
     if log:
-        print('Before temperature - ECE: %.3f' % before_temperature_ece)
+        print('Before weight scaling - ECE: %.3f' % before_weight_ece)
     
     softmaxes = F.softmax(logits, 1)
+    confidences, predictions = torch.max(softmaxes, 1)
+    accuracies = predictions.eq(labels)
     n_classes = logits.shape[1]
-    dists = softmaxes - 1 / n_classes
+    n_bins = 13
     
     ece_val = 10 ** 7
     T_opt_ece = 1.0
+    n, bin_boundaries = np.histogram(confidences.cpu().detach(), histedges_equalN(confidences.cpu().detach(), n_bins=n_bins))
+    bin_lowers = bin_boundaries[:-1]
+    bin_uppers = bin_boundaries[1:]
+    
+    numerator = []
+    dominator = []
+    
+    for bin_lower, bin_upper in zip(bin_lowers, bin_uppers):
+        in_bin = confidences.gt(bin_lower.item()) * confidences.le(bin_upper.item())
+        if any(in_bin):
+            accuracies_temp = accuracies[in_bin]
+            accuracy_in_bin = accuracies_temp.float().mean().item()
+            confidence_in_bin = confidences[in_bin].mean()
+            numerator.append((confidence_in_bin - 1 / n_classes) * (accuracy_in_bin - 1 / n_classes))
+            dominator.append((confidence_in_bin - 1 / n_classes) * (confidence_in_bin - 1 / n_classes))
+            
+    """
     T = 0.01
     for i in range(100):
         temp_softmaxes = softmaxes.clone()
-        temperature = T
+        weight = T
         temp_softmaxes = temp_softmaxes - T * dists
         temp_softmaxes /= torch.sum(temp_softmaxes, 1, keepdim=True)
-        after_temperature_ece = ece_criterion(temp_softmaxes, labels, is_logits=False).item()
+        after_weight_ece = ece_criterion(temp_softmaxes, labels, is_logits=False).item()
 
-        if ece_val > after_temperature_ece:
+        if ece_val > after_weight_ece:
             T_opt_ece = T
-            ece_val = after_temperature_ece
+            ece_val = after_weight_ece
         T += 0.01
-
-    temperature = T_opt_ece
+    """
     
-    softmaxes = softmaxes - temperature * dists
+    numerator = torch.Tensor(numerator)
+    dominator = torch.Tensor(dominator)
+    weight = torch.sum(numerator) / torch.sum(dominator)
+    
+    softmaxes = weight * softmaxes + (1 - weight) * 1 / n_classes
 
     # Calculate ECE after temperature scaling
-    after_temperature_ece = ece_criterion(softmaxes, labels, is_logits=False).item()
+    after_weight_ece = ece_criterion(softmaxes, labels, is_logits=False).item()
     if log:
-        print('Optimal temperature: %.3f' % temperature)
-        print('After temperature - ECE: %.3f' % after_temperature_ece)
+        print('Optimal weight: %.3f' % weight)
+        print('After weight scaling - ECE: %.3f' % after_weight_ece)
 
     
-    return temperature
+    return weight
