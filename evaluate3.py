@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 
 # Import chexport dataset
 import vanilla_medical_classifier_chexpert.Testers as Test
+import vanilla_medical_classifier_chexpert.Trainers as Train
 from vanilla_medical_classifier_chexpert.Main import handle_dataset, create_base_transform
 import vanilla_medical_classifier_chexpert.DataHandling as DataHandling
 
@@ -164,7 +165,17 @@ if __name__ == "__main__":
     tester = Test.Tester(args=args)
     tester.load_model()
     logits_test, labels_test = get_logits_labels(test_loader, tester.model)
+    
+    _, valid_df, w = handle_dataset(args.new_split, args.mode, args.single_label)
 
+    valid_ds = DataHandling.CheXpert(root_dir, valid_df, transform=base_transform, train_flag=False)
+
+    validation_loader = DataLoader(valid_ds, batch_size=args.batch_size, shuffle=False, num_workers=32)
+    
+    trainer = Train.Trainer(args=args, w=w)
+    trainer.load_model()
+    logits_val, labels_val = get_logits_labels(validation_loader, trainer.model)
+    
     if args.model_name is None:
         args.model_name = args.model
 
