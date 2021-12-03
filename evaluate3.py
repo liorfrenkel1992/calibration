@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 # Import chexport dataset
 import vanilla_medical_classifier_chexpert.Testers as Test
 from vanilla_medical_classifier_chexpert.Main import handle_dataset, create_base_transform
-from vanilla_medical_classifier_chexpert import DataHandling
+import vanilla_medical_classifier_chexpert.DataHandling as DataHandling
 
 # Import metrics to compute
 from Metrics.metrics import test_classification_net_logits
@@ -124,6 +124,21 @@ def parseArgs():
     return parser.parse_args()
 
 
+def get_logits_labels(data_loader, net):
+    logits_list = []
+    labels_list = []
+    net.eval()
+    with torch.no_grad():
+        for data, label in data_loader:
+            data = data.cuda()
+            logits = net(data)
+            logits_list.append(logits)
+            labels_list.append(label)
+        logits = torch.cat(logits_list).cuda()
+        labels = torch.cat(labels_list).cuda()
+    return logits, labels
+
+
 if __name__ == "__main__":
 
     # Checking if GPU is available
@@ -148,7 +163,7 @@ if __name__ == "__main__":
     
     tester = Test.Tester(args=args)
     tester.load_model()
-    tester.test(dl_test=test_loader)
+    logits_test, labels_test = get_logits_labels(test_loader, tester.model)
 
     if args.model_name is None:
         args.model_name = args.model
@@ -174,36 +189,6 @@ if __name__ == "__main__":
 
     ece_criterion = ECELoss(n_bins=25).cuda()
     
-    # Loading logits and labels
-    file = logits_path + logits_file
-    #file1 = logits_path + logits_file1
-    #file2 = logits_path + logits_file2
-    (logits_val, labels_val), (logits_test, labels_test) = unpickle_probs(file)
-    #(logits_val1, labels_val1), (logits_test1, labels_test1) = unpickle_probs(file1)
-    #(logits_val2, labels_val2), (logits_test2, labels_test2) = unpickle_probs(file2)
-    
-    """
-    softmaxs = softmax(logits_test)
-    preds = np.argmax(softmaxs, axis=1)
-    confs = np.max(softmaxs, axis=1)
-    p_ece= ECE(confs, preds, labels_test, bin_size = 1/num_bins) 
-    """
-    
-    logits_val = torch.from_numpy(logits_val).cuda()
-    labels_val = torch.squeeze(torch.from_numpy(labels_val), -1).cuda()
-    logits_test = torch.from_numpy(logits_test).cuda()
-    labels_test = torch.squeeze(torch.from_numpy(labels_test), -1).cuda()
-
-    """
-    logits_val1 = torch.from_numpy(logits_val1).cuda()
-    labels_val1 = torch.squeeze(torch.from_numpy(labels_val1), -1).cuda()
-    logits_test1 = torch.from_numpy(logits_test1).cuda()
-    labels_test1 = torch.squeeze(torch.from_numpy(labels_test1), -1).cuda()
-    logits_val2= torch.from_numpy(logits_val2).cuda()
-    labels_val2 = torch.squeeze(torch.from_numpy(labels_val2), -1).cuda()
-    logits_test2 = torch.from_numpy(logits_test2).cuda()
-    labels_test2 = torch.squeeze(torch.from_numpy(labels_test2), -1).cuda()
-    """
     # before_indices, after_indices = check_movements(logits_val, const=2)
     # plot_temp_different_bins(save_plots_loc)
     # plot_trajectory(save_plots_loc)
