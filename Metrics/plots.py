@@ -82,6 +82,27 @@ def reliability_plot(confs, preds, labels, save_plots_loc, dataset, model, train
         plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'reliability_plot_{}_{}_{}_{}.pdf'.format(scaling_related, dataset, model, trained_loss)), dpi=40)
     else:
         plt.show()
+        
+def reliability_plot_chexpert(confs, preds, labels, save_plots_loc, num_bins=15, scaling_related='before', save=False):
+    '''
+    Method to draw a reliability plot from a model's predictions and confidences.
+    '''
+    bin_dict = _populate_bins(confs, preds, labels, num_bins)
+    bns = [(i / float(num_bins)) for i in range(num_bins)]
+    y = []
+    for i in range(num_bins):
+        y.append(bin_dict[i][BIN_ACC])
+    plt.figure(figsize=(10, 8))  # width:20, height:3
+    plt.bar(bns, bns, align='edge', width=0.05, color='pink', label='Expected')
+    plt.bar(bns, y, align='edge', width=0.05,
+            color='blue', alpha=0.5, label='Actual')
+    plt.ylabel('Accuracy')
+    plt.xlabel('Confidence')
+    plt.legend()
+    if save:
+        plt.savefig(os.path.join(save_plots_loc, 'chexpert', 'reliability_plot_{}_chexpert.pdf'.format(scaling_related)), dpi=40)
+    else:
+        plt.show()
 
 
 def bin_strength_plot(confs, preds, labels, num_bins=15):
@@ -208,6 +229,23 @@ def temp_acc_plot(acc, temp, single_temp, save_plots_loc, dataset, model, traine
             plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'temp_acc_after_scaling_{}_{}_{}_acc.pdf'.format(dataset, model, trained_loss)), dpi=40)
         else:
             plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'temp_acc_after_scaling_{}_{}_{}.pdf'.format(dataset, model, trained_loss)), dpi=40)
+            
+def temp_acc_plot_chexpert(acc, temp, single_temp, save_plots_loc, acc_check=False, const_temp=False):
+    plt.figure()
+    plt.scatter(acc, temp.cpu(), label='Class-based temperature')
+    plt.plot(acc, single_temp*torch.ones(len(acc)), color='red', label='Single temperature')
+    plt.xlabel('accuracy', fontsize=10)
+    plt.xticks(fontsize=10)
+    plt.ylabel('Temperature', fontsize=10)
+    plt.yticks(fontsize=10)
+    plt.legend(fontsize=10)
+    if const_temp:
+        plt.savefig(os.path.join(save_plots_loc, 'chexpert', 'temp_acc_after_scaling_{}_{}_{}_const_temp_chexpert.pdf'), dpi=40)
+    else:
+        if acc_check:
+            plt.savefig(os.path.join(save_plots_loc, 'chexpert', 'temp_acc_after_scaling_{}_{}_{}_acc_chexpert.pdf'), dpi=40)
+        else:
+            plt.savefig(os.path.join(save_plots_loc, 'chexpert', 'temp_acc_after_scaling_{}_{}_{}_chexpert.pdf'), dpi=40)
 
 
 def diff_ece_plot(acc, csece1, csece2, save_plots_loc, dataset, model, trained_loss, acc_check=False, scaling_type='class_based'):
@@ -254,6 +292,27 @@ def temp_bins_plot(single_T, bins_T, bin_boundaries, save_plots_loc, dataset, mo
     plt.yticks(fontsize=10)
     # plt.legend(fontsize=14)
     plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'temp_bins_{}_iters_{}_{}_{}_ver_{}_{}_{}_{}_smooth.pdf'.format(bins_T.shape[1], dataset, model, trained_loss, version, divide, ds, cross_validate)), dpi=40)
+    
+def temp_bins_plot_chexpert(single_T, bins_T, bin_boundaries, save_plots_loc, acc_check=False, const_temp=False, divide='reg_divide', ds='val', version=1, cross_validate='ECE', y_name='Temperature'):
+    bin_boundaries = torch.linspace(0, bins_T.shape[0], bins_T.shape[0] + 1)
+    bin_lowers = bin_boundaries[:-1]
+    plt.figure()
+    for i in range(bins_T.shape[1]):
+        #bin_lowers = bin_boundaries[i][:-1]
+        #x_new = np.linspace(1, bins_T.shape[0], 300)
+        #a_BSpline = make_interp_spline(bin_lowers, bins_T[:, i].cpu())
+        #y_new = a_BSpline(x_new)
+        plt.plot(bin_lowers, bins_T[:, i].cpu(), label='Iteration #{}'.format(i + 1))
+        #plt.plot(x_new, y_new, label='CBT ({})'.format(cross_validate))
+        #plt.plot(x_new, y_new, label='Iteration #{}'.format(i + 1))
+    #plt.plot(bin_lowers, torch.ones(bins_T.shape[0])*single_T, label='Single temperature')
+    #plt.plot(x_new, torch.ones(len(y_new)) * single_T, label='TS'.format(cross_validate))
+    plt.xlabel('Bins', fontsize=16)
+    plt.xticks(fontsize=10)
+    plt.ylabel(y_name, fontsize=16)
+    plt.yticks(fontsize=10)
+    # plt.legend(fontsize=14)
+    plt.savefig(os.path.join(save_plots_loc, 'chexpert', 'temp_bins_{}_iters_ver_{}_{}_{}_{}_smooth_chexpert.pdf'.format(bins_T.shape[1], version, divide, ds, cross_validate)), dpi=40)
 
 
 def ece_bin_plot(ece_bin, single_ece_bin, origin_ece_bin, save_plots_loc, dataset, model, trained_loss, divide='reg_divide', ds='val', version=1):
@@ -271,6 +330,23 @@ def ece_bin_plot(ece_bin, single_ece_bin, origin_ece_bin, save_plots_loc, datase
     plt.legend(fontsize=10)
     plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model),
                              'ece_bins_{}_{}_{}_ver_{}_{}_{}_smooth.pdf'.format(dataset, model, trained_loss, version,
+                                                                                divide, ds)), dpi=40)
+    
+def ece_bin_plot_chexpert(ece_bin, single_ece_bin, origin_ece_bin, save_plots_loc, divide='reg_divide', ds='val', version=1):
+    plt.figure()
+    origin_ece_bin = [i * 100 for i in origin_ece_bin]
+    single_ece_bin = [i * 100 for i in single_ece_bin]
+    ece_bin = [i * 100 for i in ece_bin]
+    plt.plot(range(len(ece_bin)), origin_ece_bin, label='ECE before scaling')
+    plt.plot(range(len(ece_bin)), single_ece_bin, label='ECE after single temp scaling')
+    plt.plot(range(len(ece_bin)), ece_bin, label='ECE after per bin temp scaling')
+    plt.xlabel('Bins', fontsize=16)
+    plt.xticks(fontsize=10)
+    plt.ylabel('ECE(%)', fontsize=16)
+    plt.yticks(fontsize=10)
+    plt.legend(fontsize=10)
+    plt.savefig(os.path.join(save_plots_loc, 'chexpert',
+                             'ece_bins_ver_{}_{}_{}_smooth_chexpert.pdf'.format(version,
                                                                                 divide, ds)), dpi=40)
     
     

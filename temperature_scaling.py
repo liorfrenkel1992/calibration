@@ -1060,6 +1060,7 @@ def set_temperature2(logits, labels, iters=1, cross_validate='ece',
             for label in range(logits.size()[1]):
                 #init_temp_value = T_csece[label].item()
                 T = 0.1
+                origin_avg_confidence_in_class = confidences[in_bin].mean()
                 for i in range(100):
                 #for step in temp_steps:
                     T_csece[label] = T
@@ -1083,6 +1084,10 @@ def set_temperature2(logits, labels, iters=1, cross_validate='ece',
                             csece_val = after_temperature_ece
                     T += 0.1
                 T_csece[label] = T_opt_csece[label]
+                
+                print('original average confidence in class ', label + 1, ' :', origin_avg_confidence_in_class.item())
+                print('ece in class ', label+1, ' :', (prop_in_bin * csece_val).item(), ', number of samples: ', samples)
+                print('accuracy in class ', label+1, ': ', origin_accuracy_in_bin)
             csece_temperature = T_opt_csece
             ece_list.append(ece_criterion(class_temperature_scale2(logits, csece_temperature), labels).item())
             #converged = torch.all(csece_temperature.eq(prev_temperatures))
