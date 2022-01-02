@@ -12,6 +12,8 @@ import numpy as np
 from torch import nn
 from torch.nn import functional as F
 
+from vector_scaling import VectorScaling
+
 
 from sklearn.metrics import accuracy_score
 from sklearn.metrics import confusion_matrix
@@ -787,3 +789,17 @@ class ConfECELoss(nn.Module):
                 ece += torch.abs(avg_confidence_in_bin - accuracy_in_bin) * prop_in_bin
                 
         return ece
+    
+    
+class TestVectorScaling(nn.Module):
+    def __init__(self):
+        super(TestVectorScaling, self).__init__()
+        self.cal = VectorScaling(logit_constant=0.0)
+
+    def forward(self, S, y):
+        self.cal.fit(S, y)
+        predictions = self.cal.predict_proba(S).argmax(axis=1)
+        acc = accuracy_score(y, predictions)
+        self.assertGreater(acc, 0.99, "accuracy must be superior to 99 percent")
+        
+        return self.cal.weights
