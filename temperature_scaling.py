@@ -1886,11 +1886,12 @@ def bins_temperature_scale_test5(logits, weight):
                                     
         return softmaxes
 
-def set_temperature5(logits, labels, log=True):
+def set_temperature5(logits, labels, cross_validate='ece', log=True):
     """
     Tune the tempearature of the model (using the validation set) with cross-validation on ECE without bins
     """
     ece_criterion = ECELoss().cuda()
+    nll_criterion = nn.CrossEntropyLoss().cuda()
 
     # Calculate ECE before temperature scaling
     before_weight_ece = ece_criterion(logits, labels).item()
@@ -1905,6 +1906,35 @@ def set_temperature5(logits, labels, log=True):
     
     ece_val = 10 ** 7
     T_opt_ece = 1.0
+    
+    nll_val = 10 ** 7
+    ece_val = 10 ** 7
+    T_opt_nll = 1.0
+    T_opt_ece = 1.0
+    T = 0.1
+    labels = labels.type(torch.LongTensor).cuda()
+    for t in range(100):
+        temperature = T
+        after_temperature_ece = ece_criterion(temperature_scale2(logits, temperature), labels).item()
+        after_temperature_nll = nll_criterion(temperature_scale2(logits, temperature), labels).item()
+        if ece_val > after_temperature_ece:
+            T_opt_ece = T
+            ece_val = after_temperature_ece
+        if nll_val > after_temperature_nll:
+            T_opt_nll = T
+            nll_val = after_temperature_nll
+        T += 0.1
+        
+    if cross_validate == 'ece':
+        temperature = T_opt_ece
+    else:
+        temperature = T_opt_nll
+    
+    after_temperature_ece = ece_criterion(temperature_scale2(logits, temperature), labels).item()
+    print('Temperature for single TS: {}'.format(after_temperature_ece))
+        
+    temperature = T_opt_ece
+    
     n, bin_boundaries = np.histogram(confidences.cpu().detach(), histedges_equalN(confidences.cpu().detach(), n_bins=n_bins))
     bin_lowers = bin_boundaries[:-1]
     bin_uppers = bin_boundaries[1:]
@@ -1949,4 +1979,4 @@ def set_temperature5(logits, labels, log=True):
         print('After weight scaling - ECE: %.3f' % after_weight_ece)
 
     
-    return weight
+    return weight, temperature    
