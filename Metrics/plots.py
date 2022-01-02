@@ -83,7 +83,7 @@ def reliability_plot(confs, preds, labels, save_plots_loc, dataset, model, train
     else:
         plt.show()
         
-def reliability_plot_chexpert(confs, preds, labels, save_plots_loc, num_bins=15, scaling_related='before', save=False):
+def reliability_plot_chexpert(confs, preds, labels, save_plots_loc, num_bins=15, scaling_related='before', save=False, single=False):
     '''
     Method to draw a reliability plot from a model's predictions and confidences.
     '''
@@ -100,7 +100,10 @@ def reliability_plot_chexpert(confs, preds, labels, save_plots_loc, num_bins=15,
     plt.xlabel('Confidence')
     plt.legend()
     if save:
-        plt.savefig(os.path.join(save_plots_loc, 'chexpert', 'reliability_plot_{}_chexpert.pdf'.format(scaling_related)), dpi=40)
+        if single:
+            plt.savefig(os.path.join(save_plots_loc, 'chexpert', 'reliability_plot_{}_single_w_chexpert.pdf'.format(scaling_related)), dpi=40)
+        else:
+            plt.savefig(os.path.join(save_plots_loc, 'chexpert', 'reliability_plot_{}_chexpert.pdf'.format(scaling_related)), dpi=40)
     else:
         plt.show()
 
