@@ -6,11 +6,13 @@ import torch
 import numpy as np
 from torch import nn, optim
 from torch.nn import functional as F
+from torch.utils.data import DataLoader
 import math
 
 from Metrics.metrics import test_classification_net_logits
-from Metrics.metrics import ECELoss, ClassECELoss, posnegECELoss, estECELoss
+from Metrics.metrics import ECELoss, ClassECELoss, posnegECELoss, estECELoss, LinearModel
 from Metrics.metrics2 import ECE, softmax, test_classification_net_logits2
+from evaluate_scripts.resnet_sd import lr_sch
 
 torch.set_printoptions(precision=10)
 
@@ -1979,4 +1981,52 @@ def set_temperature5(logits, labels, cross_validate='ece', log=True):
         print('After weight scaling - ECE: %.3f' % after_weight_ece)
 
     
-    return weight, temperature    
+    return weight, temperature 
+
+class VectorScaling():
+    def __init__(self, val_loader, input_size, device, load_model_path, lr=0.05, epochs=5):
+        self.lr = lr
+        self.epochs = epochs
+        self.val_loader = val_loader
+        self.device = device
+        self.load_model_path = load_model_path
+        self.input_size = input_size
+        
+    def find_best_transform(self, save_model_path, save_model=False):
+        model = LinearModel(self.input_size, is_matrix=False).to(self.device)
+        optimizer = optim.SGD(model.parameters(), lr=self.lr)
+        criterion = nn.CrossEntropyLoss().to(self.device)
+        
+        model.train()
+        for epoch in range(self.epochs):
+            for logits, labels in self.val_loader:
+                logits = logits.to(self.device)
+                labels = labels.to(self.device)
+                
+                optimizer.zero_grad()
+                criterion(model(logits), labels).backward()
+                optimizer.step()
+            
+            print('nll after epoch #' + str(epoch) + ': ' + str(criterion)
+            
+        if save_model:
+            torch.save(model.state_dict(), '{}/vs_model_{}_epochs_lr_{}.pt'.format(save_model_path, self.epochs, self.lr))
+            
+    def evaluate(self, logits):
+        model = LinearModel(self.input_size, is_matrix=False).to(self.device)
+        model.load_state_dict(torch.load('{}/vs_model_{}_epochs_lr_{}.pt'.format(self.load_model_path, self.epochs, self.lr)))
+        model.eval()
+        
+        with torch.no_grad():
+            cal_logits = model(logits.to(self.device))
+            
+        return cal_logits
+        
+            
+        
+            
+    
+            
+    
+        
+    
