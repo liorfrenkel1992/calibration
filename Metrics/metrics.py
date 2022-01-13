@@ -11,8 +11,9 @@ import torch
 import numpy as np
 from torch import nn
 from torch.nn import functional as F
+from torch import optim
 
-from vector_scaling import VectorScaling
+# from vector_scaling import VectorScaling
 
 
 from sklearn.metrics import accuracy_score
@@ -791,15 +792,33 @@ class ConfECELoss(nn.Module):
         return ece
     
     
-class TestVectorScaling(nn.Module):
-    def __init__(self):
-        super(TestVectorScaling, self).__init__()
-        self.cal = VectorScaling(logit_constant=0.0)
+# class TestVectorScaling(nn.Module):
+#     def __init__(self):
+#         super(TestVectorScaling, self).__init__()
+#         self.cal = VectorScaling(logit_constant=0.0)
 
-    def forward(self, S, y):
-        self.cal.fit(S, y)
-        predictions = self.cal.predict_proba(S).argmax(axis=1)
-        acc = accuracy_score(y, predictions)
-        self.assertGreater(acc, 0.99, "accuracy must be superior to 99 percent")
+#     def forward(self, S, y):
+#         self.cal.fit(S, y)
+#         predictions = self.cal.predict_proba(S).argmax(axis=1)
+#         acc = accuracy_score(y, predictions)
+#         self.assertGreater(acc, 0.99, "accuracy must be superior to 99 percent")
         
-        return self.cal.weights
+#         return self.cal.weights
+    
+
+class LinearModel(nn.Module):
+    def __init__(self, input_size, is_matrix=True):
+        super(LinearModel, self).__init__()
+        self.linear = nn.Linear(input_size, input_size)
+        self.mask = torch.eye(input_size, dtype=bool)
+        self.is_matrix = is_matrix
+        
+    def forward(self, x):
+        if not self.is_matrix:
+            self.mask = self.mask.to(x.device)
+            self.linear.weight.data *= self.mask
+        x = self.linear(x)
+        
+        return x
+
+        
