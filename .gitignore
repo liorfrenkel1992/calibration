@@ -4,3 +4,4 @@ tiny-imagenet-200
 *.model
 .vscode
 plots
+models
