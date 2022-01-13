@@ -21,4 +21,4 @@ class LogitsLabelsDataset(Dataset):
 
     def __getitem__(self, idx):
         
-        return self.logits[idx], self.labels[idx]
+        return self.logits[idx], self.labels[idx].long()
