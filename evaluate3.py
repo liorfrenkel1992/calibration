@@ -3,6 +3,8 @@ import torch
 import argparse
 import pickle
 
+from torch.utils.data.dataloader import DataLoader
+
 # Import chexport dataset
 import vanilla_medical_classifier_chexpert.Testers as Test
 import vanilla_medical_classifier_chexpert.Trainers as Train
@@ -11,14 +13,16 @@ import vanilla_medical_classifier_chexpert.DataHandling as DataHandling
 
 # Import metrics to compute
 from Metrics.metrics import test_classification_net_logits
-from Metrics.metrics import ECELoss, TestVectorScaling
+from Metrics.metrics import ECELoss
 from Metrics.metrics2 import ECE, softmax
 from Metrics.plots import temp_bins_plot_chexpert, ece_bin_plot_chexpert, logits_diff_bin_plot, reliability_plot_chexpert, temp_bins_plot2
 from Metrics.plots import plot_temp_different_bins, ece_iters_plot2, plot_trajectory, conf_acc_diff_plot
 
+from dataset import LogitsLabelsDataset
+
 # Import temperature scaling and NLL utilities
 from temperature_scaling import set_temperature2, temperature_scale2, class_temperature_scale2, set_temperature3, bins_temperature_scale_test3, set_temperature4
-from temperature_scaling import bins_temperature_scale_test4, bins_temperature_scale_test5, set_temperature5
+from temperature_scaling import bins_temperature_scale_test4, bins_temperature_scale_test5, set_temperature5, VectorScaling
 
 # import torch.multiprocessing
 # torch.multiprocessing.set_sharing_strategy('file_system')
@@ -64,6 +68,10 @@ def parseArgs():
                         help="Whether to use single WS/ CWS by bins")
     parser.add_argument("--method", type=str, default="weight", dest="method",
                         help="Method to use (weight/bins/class)")
+    parser.add_argument("--load_model_path", type=str, default="./models", dest="load_model_path",
+                        help="Path of saved matrix/vector scaling model")
+    parser.add_argument("-train_mat_scaling", action="store_true", dest="train_mat_scaling",
+                        help="Whether to find matrix/vector for matrix/vector scaling")
     
     # Chexport args
     parser.add_argument("--n_epochs", type=int, default=30, help="number of epochs of training")
@@ -162,14 +170,18 @@ if __name__ == "__main__":
     with open(args.logits_path + '/val_logits.pickle', 'rb') as handle:
         logits_val = pickle.load(handle)
         
+    if args.method == 'vs' or args.method == 'ms':
+        val_set = LogitsLabelsDataset(args.logits_path, type='val')
+        val_loader = DataLoader(val_set, batch_size=128, shuffle=True)
+        
     # labels_test = convert_one_hot_labels(labels_test)
     # labels_val = convert_one_hot_labels(labels_val)
     
-    count_labels_val_dict = count_labels(labels_val)
-    count_labels_test_dict = count_labels(labels_test)
+    # count_labels_val_dict = count_labels(labels_val)
+    # count_labels_test_dict = count_labels(labels_test)
     
-    print('val labels: ', count_labels_val_dict)
-    print('test labels: ', count_labels_test_dict)
+    # print('val labels: ', count_labels_val_dict)
+    # print('test labels: ', count_labels_test_dict)
 
     num_bins = args.num_bins
     cross_validation_error = args.cross_validation_error
@@ -181,7 +193,7 @@ if __name__ == "__main__":
     logits_path = args.logits_path
 
     ece_criterion = ECELoss(n_bins=25).cuda()
-    vector_scaling = TestVectorScaling()
+    # vector_scaling = TestVectorScaling()
     
     # before_indices, after_indices = check_movements(logits_val, const=2)
     # plot_temp_different_bins(save_plots_loc)
@@ -192,13 +204,25 @@ if __name__ == "__main__":
     _, p_acc, _, predictions, confidences = test_classification_net_logits(logits_test, labels_test)
     reliability_plot_chexpert(confidences, predictions, labels_test, save_plots_loc, num_bins=num_bins, scaling_related='before', save=True)
     
-    weights = vector_scaling(logits_val, p_acc)
+    # weights = vector_scaling(logits_val, p_acc)
     
     # Printing the required evaluation metrics
     if args.log:
         print('Pre-scaling test ECE: ' + str(p_ece))
         print('Pre-scaling test accuracy: ' + str(p_acc))
 
+    if args.method == 'vs':  # Vector scaling
+        vector_scaling = VectorScaling(val_loader, input_size=logits_val.shape[-1], device=device, load_model_path=args.load_model_path)
+        
+        if args.train_mat_scaling:
+            vector_scaling.find_best_transform(args.load_model_path, save_model=True)
+            
+        cal_logits = vector_scaling.evaluate(logits_test)
+        ece = ece_criterion(cal_logits, labels_test).item()
+        
+        single_temp = set_temperature2(logits_val, labels_val.long(), const_temp=True)
+        ece_single = ece_criterion(temperature_scale2(logits_test, single_temp), labels_test.long()).item()
+        
     if args.method == 'weight':
         if args.single_weight:
             weight, single_temp = set_temperature5(logits_val, labels_val, log=args.log)
