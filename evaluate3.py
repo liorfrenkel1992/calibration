@@ -11,6 +11,9 @@ import vanilla_medical_classifier_chexpert.Trainers as Train
 from vanilla_medical_classifier_chexpert.Main import handle_dataset, create_base_transform
 import vanilla_medical_classifier_chexpert.DataHandling as DataHandling
 
+# Import Covid19 model
+from covid19_model import *
+
 # Import metrics to compute
 from Metrics.metrics import test_classification_net_logits
 from Metrics.metrics import ECELoss
@@ -18,7 +21,7 @@ from Metrics.metrics2 import ECE, softmax
 from Metrics.plots import temp_bins_plot_chexpert, ece_bin_plot_chexpert, logits_diff_bin_plot, reliability_plot_chexpert, temp_bins_plot2
 from Metrics.plots import plot_temp_different_bins, ece_iters_plot2, plot_trajectory, conf_acc_diff_plot
 
-from dataset import LogitsLabelsDataset
+from dataset import Chexpert, LogitsLabelsDataset, Covid19
 
 # Import temperature scaling and NLL utilities
 from temperature_scaling import set_temperature2, temperature_scale2, class_temperature_scale2, set_temperature3, bins_temperature_scale_test3, set_temperature4
@@ -33,7 +36,7 @@ def parseArgs():
     save_plots_loc = '/mnt/dsi_vol1/users/frenkel2/data/calibration/focal_calibration-1/plots'
     num_bins = 15
     cross_validation_error = 'ece'
-    logits_path = 'vanilla_medical_classifier_chexpert/DataSet'
+    logits_path = 'COVID-19/logits'
 
     parser = argparse.ArgumentParser(
         description="Evaluating a single model on calibration metrics.",
@@ -114,10 +117,11 @@ def get_logits_labels(data_loader, net):
     with torch.no_grad():
         for data, label in data_loader:
             data = data.cuda()
-            batch_size, n_crops, c, h, w = data.size()
+            logits = net(data)
+            # batch_size, n_crops, c, h, w = data.size()
 
-            y_hat = net(data.view(-1, c, h, w))  # fuse batch_size and n_crops
-            logits = y_hat.view(batch_size, n_crops, -1).mean(1)  # avg over crops
+            # y_hat = net(data.view(-1, c, h, w))  # fuse batch_size and n_crops
+            # logits = y_hat.view(batch_size, n_crops, -1).mean(1)  # avg over crops
             
             logits_list.append(logits)
             labels_list.append(label)
@@ -140,7 +144,7 @@ if __name__ == "__main__":
     args = parseArgs()
     
     # root_dir = os.path.join(os.getcwd(), 'vanilla_medical_classifier_chexpert', 'DataSet')
-    # root_dir = os.path.join('/home/dsi/davidsr/vanilla_medical_classifier_chexpert', 'DataSet')
+    # root_dir = os.path.join(loss, 'DataSet')
     # base_transform = create_base_transform()
     
     # test_df = handle_dataset(args.new_split, 'test', args.single_label)
@@ -161,6 +165,18 @@ if __name__ == "__main__":
     # trainer = Train.Trainer(args=args, w=w)
     # logits_val, labels_val = get_logits_labels(validation_loader, trainer.model)
     
+    # chexpert_ds = Chexpert(type='train')
+    # len_data = len(chexpert_ds)
+    # len_val = int(0.1 * len_data)
+    # len_test = int(0.1 * len_data)
+    # len_train = int(len_data - len_val - len_test)
+    # train_imgs = chexpert_ds.imgs[:len_train]
+    # val_imgs = chexpert_ds.imgs[len_train:len_train + len_val]
+    # test_imgs = chexpert_ds.imgs[len_train + len_val:]
+    # train_labels = chexpert_ds.labels[:len_train]
+    # val_labels = chexpert_ds.labels[len_train:len_train + len_val]
+    # test_labels = chexpert_ds.labels[len_train + len_val:]
+    
     with open(args.logits_path + '/test_labels.pickle', 'rb') as handle:
         labels_test = pickle.load(handle)
     with open(args.logits_path + '/test_logits.pickle', 'rb') as handle:
@@ -170,6 +186,20 @@ if __name__ == "__main__":
     with open(args.logits_path + '/val_logits.pickle', 'rb') as handle:
         logits_val = pickle.load(handle)
         
+    # batch_size = 32
+    
+    # model = DarkCovidNet()
+    # model = torch.load('/mnt/dsi_vol1/users/frenkel2/data/calibration/focal_calibration-1/covid19_resnet50_epochs_50,lr_0.003,bs_32.pth')
+    
+    # val_set = Covid19('/mnt/dsi_vol1/users/frenkel2/data/calibration/focal_calibration-1/COVID-19', 'val')
+    # test_set = Covid19('/mnt/dsi_vol1/users/frenkel2/data/calibration/focal_calibration-1/COVID-19', 'test')
+    
+    # valloader = DataLoader(val_set, batch_size=batch_size, shuffle=True, num_workers=4)
+    # testloader = DataLoader(test_set, batch_size=batch_size, shuffle=False, num_workers=4)
+    
+    # logits_val, labels_val = get_logits_labels(valloader, model)
+    # logits_test, labels_test = get_logits_labels(testloader, model)
+            
     if args.method == 'vs' or args.method == 'ms':
         val_set = LogitsLabelsDataset(args.logits_path, type='val')
         val_loader = DataLoader(val_set, batch_size=128, shuffle=True)
@@ -192,7 +222,7 @@ if __name__ == "__main__":
     acc_check = args.acc_check
     logits_path = args.logits_path
 
-    ece_criterion = ECELoss(n_bins=25).cuda()
+    ece_criterion = ECELoss(n_bins=11).cuda()
     # vector_scaling = TestVectorScaling()
     
     # before_indices, after_indices = check_movements(logits_val, const=2)
@@ -274,9 +304,9 @@ if __name__ == "__main__":
         #                 args.model, trained_loss, divide=args.divide, ds='val_dists_bins', version=2, y_name='(1/Temperature) / Weight')
         # new_softmaxes = bins_temperature_scale_test5(logits_test, temperature)
         _, _, _, predictions, confidences = test_classification_net_logits(new_softmaxes, labels_test, is_logits=False)
-        reliability_plot_chexpert(confidences, predictions, labels_test, save_plots_loc, num_bins=num_bins, scaling_related='after_dists', save=True, single=args.single_weight)
+        # reliability_plot_chexpert(confidences, predictions, labels_test, save_plots_loc, num_bins=num_bins, scaling_related='after_dists', save=True, single=args.single_weight)
         _, _, _, predictions, confidences = test_classification_net_logits(temperature_scale2(logits_test, single_temp), labels_test)
-        reliability_plot_chexpert(confidences, predictions, labels_test, save_plots_loc, num_bins=num_bins, scaling_related='after_single', save=True)
+        # reliability_plot_chexpert(confidences, predictions, labels_test, save_plots_loc, num_bins=num_bins, scaling_related='after_single', save=True)
         ece = ece_criterion(new_softmaxes, labels_test, is_logits=False).item()
         ece_single = ece_criterion(temperature_scale2(logits_test, single_temp), labels_test).item()
     
