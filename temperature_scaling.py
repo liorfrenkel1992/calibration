@@ -1553,7 +1553,7 @@ def bins_temperature_scale_test4(logits, labels, bins_T, iters, bin_boundaries, 
         """
         Perform temperature scaling on logits
         """
-        ece_criterion = ECELoss(n_bins=25).cuda()
+        ece_criterion = ECELoss(n_bins=6).cuda()
         softmaxes = F.softmax(logits, dim=1)
         confidences, predictions = torch.max(softmaxes, 1)
         accuracies = predictions.eq(labels)
@@ -1745,16 +1745,16 @@ def set_temperature4(logits, labels, iters=1, cross_validate='ece',
             for bin_lower, bin_upper in zip(bin_lowers, bin_uppers):
                 in_bin = confidences.gt(bin_lower.item()) * confidences.le(bin_upper.item())
                 prop_in_bin = in_bin.float().mean()
-                if confidences[in_bin].shape[0] < 20:
-                    samples = T_bece[in_bin].shape[0]
-                    print('number of samples in bin {0}: {1}'.format(bin + 1, samples))
-                    few_examples[bin] = samples
-                    if bin == 0:
-                        conf_acc_diff.append(0)
-                    else:
-                        conf_acc_diff.append(conf_acc_diff[-1])
-                    bin += 1
-                    continue
+                # if confidences[in_bin].shape[0] < 20:
+                #     samples = T_bece[in_bin].shape[0]
+                #     print('number of samples in bin {0}: {1}'.format(bin + 1, samples))
+                #     few_examples[bin] = samples
+                #     if bin == 0:
+                #         conf_acc_diff.append(0)
+                #     else:
+                #         conf_acc_diff.append(conf_acc_diff[-1])
+                #     bin += 1
+                #     continue
                 if any(in_bin):
                     T = 0.0
                     accuracies_temp = accuracies[in_bin]
@@ -2004,10 +2004,11 @@ class VectorScaling():
                 labels = labels.to(self.device)
                 
                 optimizer.zero_grad()
-                criterion(model(logits), labels).backward()
+                loss = criterion(model(logits), labels)
+                loss.backward()
                 optimizer.step()
             
-            print('nll after epoch #' + str(epoch) + ': ' + str(criterion)
+            print('nll after epoch #' + str(epoch) + ': ' + str(loss))
             
         if save_model:
             torch.save(model.state_dict(), '{}/vs_model_{}_epochs_lr_{}.pt'.format(save_model_path, self.epochs, self.lr))
