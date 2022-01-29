@@ -101,9 +101,9 @@ def reliability_plot_chexpert(confs, preds, labels, save_plots_loc, num_bins=15,
     plt.legend()
     if save:
         if single:
-            plt.savefig(os.path.join(save_plots_loc, 'chexpert', 'reliability_plot_{}_single_w_chexpert.pdf'.format(scaling_related)), dpi=40)
+            plt.savefig(os.path.join(save_plots_loc, 'covid19', 'reliability_plot_{}_single_w_covid19.pdf'.format(scaling_related)), dpi=40)
         else:
-            plt.savefig(os.path.join(save_plots_loc, 'chexpert', 'reliability_plot_{}_chexpert.pdf'.format(scaling_related)), dpi=40)
+            plt.savefig(os.path.join(save_plots_loc, 'covid19', 'reliability_plot_{}_covid19.pdf'.format(scaling_related)), dpi=40)
     else:
         plt.show()
 
