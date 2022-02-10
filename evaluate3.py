@@ -21,28 +21,29 @@ from Metrics.metrics2 import ECE, softmax
 from Metrics.plots import temp_bins_plot_chexpert, ece_bin_plot_chexpert, logits_diff_bin_plot, reliability_plot_chexpert, temp_bins_plot2
 from Metrics.plots import plot_temp_different_bins, ece_iters_plot2, plot_trajectory, conf_acc_diff_plot
 
-from dataset import Chexpert, LogitsLabelsDataset, Covid19
+from dataset import Chexpert, LogitsLabelsDataset, Covid19, HAM10000
 
 # Import temperature scaling and NLL utilities
 from temperature_scaling import set_temperature2, temperature_scale2, class_temperature_scale2, set_temperature3, bins_temperature_scale_test3, set_temperature4
-from temperature_scaling import bins_temperature_scale_test4, bins_temperature_scale_test5, set_temperature5, VectorScaling
+from temperature_scaling import bins_temperature_scale_test4, bins_temperature_scale_test5, set_temperature5, MatrixScaling
 
 # import torch.multiprocessing
 # torch.multiprocessing.set_sharing_strategy('file_system')
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "2"
+os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 def parseArgs():
     save_plots_loc = '/mnt/dsi_vol1/users/frenkel2/data/calibration/focal_calibration-1/plots'
     num_bins = 15
     cross_validation_error = 'ece'
-    logits_path = 'COVID-19/logits'
 
     parser = argparse.ArgumentParser(
         description="Evaluating a single model on calibration metrics.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("--num-bins", type=int, default=num_bins, dest="num_bins",
                         help='Number of bins')
+    parser.add_argument("--test-bins", type=int, default=num_bins, dest="test_bins",
+                        help='Number of test bins')
     parser.add_argument("--cverror", type=str, default=cross_validation_error,
                         dest="cross_validation_error", help='Error function to do temp scaling')
     parser.add_argument("-log", action="store_true", dest="log",
@@ -58,7 +59,7 @@ def parseArgs():
     parser.add_argument("--save-path-plots", type=str, default=save_plots_loc,
                         dest="save_plots_loc",
                         help='Path to save plots')
-    parser.add_argument("--logits_path", type=str, default=logits_path,
+    parser.add_argument("--logits_path", type=str, default='chexpert',
                         dest="logits_path",
                         help='Path of saved logits')
     parser.add_argument("-bins", action="store_true", dest="bins_temp",
@@ -75,6 +76,11 @@ def parseArgs():
                         help="Path of saved matrix/vector scaling model")
     parser.add_argument("-train_mat_scaling", action="store_true", dest="train_mat_scaling",
                         help="Whether to find matrix/vector for matrix/vector scaling")
+    parser.add_argument("--n_classes", type=int, default=6, help="number of classes")
+    parser.add_argument("--model_name", type=str, default="vgg_bn", dest="model_name",
+                        help="model name to train/test")
+    parser.add_argument("--ds_name", type=str, default="chexpert", dest="ds_name",
+                        help="dataset name")
     
     # Chexport args
     parser.add_argument("--n_epochs", type=int, default=30, help="number of epochs of training")
@@ -143,6 +149,26 @@ if __name__ == "__main__":
 
     args = parseArgs()
     
+    num_bins = args.num_bins
+    cross_validation_error = args.cross_validation_error
+    temp_opt_iters = args.temp_opt_iters
+    const_temp = args.const_temp
+    save_plots_loc = args.save_plots_loc
+    init_temp = args.init_temp
+    acc_check = args.acc_check
+    dataset = args.ds_name
+    model = args.model_name
+    trained_loss = ''
+    
+    if args.ds_name == 'ham10000':
+        logits_path = 'dataverse/dataverse_files'
+    elif args.ds_name == 'chexpert':
+        logits_path = 'vanilla_medical_classifier_chexpert'
+    elif args.ds_name == 'covid19':
+        logits_path = 'COVID-19'
+    elif args.ds_name == 'cxr14':
+        logits_path = 'CXR14'
+    
     # root_dir = os.path.join(os.getcwd(), 'vanilla_medical_classifier_chexpert', 'DataSet')
     # root_dir = os.path.join(loss, 'DataSet')
     # base_transform = create_base_transform()
@@ -177,16 +203,16 @@ if __name__ == "__main__":
     # val_labels = chexpert_ds.labels[len_train:len_train + len_val]
     # test_labels = chexpert_ds.labels[len_train + len_val:]
     
-    with open(args.logits_path + '/test_labels.pickle', 'rb') as handle:
+    with open(logits_path + '/logits/' + args.model_name + '/test_labels.pickle', 'rb') as handle:
         labels_test = pickle.load(handle)
-    with open(args.logits_path + '/test_logits.pickle', 'rb') as handle:
+    with open(logits_path + '/logits/' + args.model_name + '/test_logits.pickle', 'rb') as handle:
         logits_test = pickle.load(handle)
-    with open(args.logits_path + '/val_labels.pickle', 'rb') as handle:
+    with open(logits_path + '/logits/' + args.model_name + '/val_labels.pickle', 'rb') as handle:
         labels_val = pickle.load(handle)
-    with open(args.logits_path + '/val_logits.pickle', 'rb') as handle:
+    with open(logits_path + '/logits/' + args.model_name + '/val_logits.pickle', 'rb') as handle:
         logits_val = pickle.load(handle)
         
-    # batch_size = 32
+    batch_size = 32
     
     # model = DarkCovidNet()
     # model = torch.load('/mnt/dsi_vol1/users/frenkel2/data/calibration/focal_calibration-1/covid19_resnet50_epochs_50,lr_0.003,bs_32.pth')
@@ -199,9 +225,23 @@ if __name__ == "__main__":
     
     # logits_val, labels_val = get_logits_labels(valloader, model)
     # logits_test, labels_test = get_logits_labels(testloader, model)
-            
+    
+    # model = ResNet(num_classes=args.n_classes)
+    # model = DenseNet(num_classes=args.n_classes)
+    # model = VGG_BN(num_classes=args.n_classes)
+    # model = torch.load('/mnt/dsi_vol1/users/frenkel2/data/calibration/focal_calibration-1/CXR14/ckpts/cxr14_vgg_bn_epochs_5,lr_0.0001,bs_32_15_classes_epoch_0_val_loss_1.3678251200931364_sched.pth')
+    
+    # val_set = CXR14(args, type='val')
+    # test_set = CXR14(args, type='test')
+    
+    # valloader = DataLoader(val_set, batch_size=batch_size, shuffle=True, num_workers=4)
+    # testloader = DataLoader(test_set, batch_size=batch_size, shuffle=False, num_workers=4)
+    
+    # logits_val, labels_val = get_logits_labels(valloader, model)
+    # logits_test, labels_test = get_logits_labels(testloader, model)
+    
     if args.method == 'vs' or args.method == 'ms':
-        val_set = LogitsLabelsDataset(args.logits_path, type='val')
+        val_set = LogitsLabelsDataset(args, logits_path, type='val')
         val_loader = DataLoader(val_set, batch_size=128, shuffle=True)
         
     # labels_test = convert_one_hot_labels(labels_test)
@@ -213,16 +253,7 @@ if __name__ == "__main__":
     # print('val labels: ', count_labels_val_dict)
     # print('test labels: ', count_labels_test_dict)
 
-    num_bins = args.num_bins
-    cross_validation_error = args.cross_validation_error
-    temp_opt_iters = args.temp_opt_iters
-    const_temp = args.const_temp
-    save_plots_loc = args.save_plots_loc
-    init_temp = args.init_temp
-    acc_check = args.acc_check
-    logits_path = args.logits_path
-
-    ece_criterion = ECELoss(n_bins=11).cuda()
+    ece_criterion = ECELoss(n_bins=10).cuda()
     # vector_scaling = TestVectorScaling()
     
     # before_indices, after_indices = check_movements(logits_val, const=2)
@@ -232,7 +263,9 @@ if __name__ == "__main__":
     p_ece = ece_criterion(logits_test, labels_test).item()
     # p_ece2 = ece_criterion(logits_test2, labels_test2).item()
     _, p_acc, _, predictions, confidences = test_classification_net_logits(logits_test, labels_test)
-    reliability_plot_chexpert(confidences, predictions, labels_test, save_plots_loc, num_bins=num_bins, scaling_related='before', save=True)
+    if not os.path.isdir(save_plots_loc + '/' + dataset + '_' + model):
+        os.mkdir(save_plots_loc + '/' + dataset + '_' + model)
+    reliability_plot_chexpert(confidences, predictions, labels_test, save_plots_loc, dataset, model, num_bins=num_bins, scaling_related='before', save=True)
     
     # weights = vector_scaling(logits_val, p_acc)
     
@@ -241,21 +274,25 @@ if __name__ == "__main__":
         print('Pre-scaling test ECE: ' + str(p_ece))
         print('Pre-scaling test accuracy: ' + str(p_acc))
 
-    if args.method == 'vs':  # Vector scaling
-        vector_scaling = VectorScaling(val_loader, input_size=logits_val.shape[-1], device=device, load_model_path=args.load_model_path)
+    if args.method == 'vs' or args.method == 'ms':  # Vector/Matrix scaling
+        if args.method == 'vs':
+            scaling = MatrixScaling(val_loader, input_size=logits_val.shape[-1], device=device, load_model_path=args.load_model_path, is_matrix=False)
+        else:
+            scaling = MatrixScaling(val_loader, input_size=logits_val.shape[-1], device=device, load_model_path=args.load_model_path)
         
         if args.train_mat_scaling:
-            vector_scaling.find_best_transform(args.load_model_path, save_model=True)
+            scaling.find_best_transform(args.load_model_path, save_model=True)
             
-        cal_logits = vector_scaling.evaluate(logits_test)
+        cal_logits = scaling.evaluate(logits_test)
         ece = ece_criterion(cal_logits, labels_test).item()
+        print(ece)
         
         single_temp = set_temperature2(logits_val, labels_val.long(), const_temp=True)
         ece_single = ece_criterion(temperature_scale2(logits_test, single_temp), labels_test.long()).item()
         
     if args.method == 'weight':
         if args.single_weight:
-            weight, single_temp = set_temperature5(logits_val, labels_val, log=args.log)
+            weight, single_temp = set_temperature5(logits_val, labels_val, num_bins, log=args.log)
         else:
             bins_T, single_temp, bin_boundaries, best_iter, conf_acc_diff = set_temperature4(logits_val, labels_val, temp_opt_iters, cross_validate=cross_validation_error, init_temp=init_temp,
                                                                                 acc_check=acc_check, const_temp=const_temp, log=args.log, num_bins=num_bins, top_temp=1.2)
@@ -295,25 +332,25 @@ if __name__ == "__main__":
                                                                                                         args.temp_opt_iters,
                                                                                                         bin_boundaries,
                                                                                                         single_temp, best_iter, num_bins)
-        # bins_T2, single_temp2, bin_boundaries2, many_samples, best_iter2 = set_temperature3(logits_val, labels_val, temp_opt_iters, cross_validate=cross_validation_error, init_temp=init_temp,
-        #                                                                                 const_temp=const_temp, log=args.log, num_bins=num_bins)
-        # temp_bins_plot(single_temp, bins_T, bin_boundaries, save_plots_loc, dataset, args.model, trained_loss,
-        #                divide=args.divide, ds='val_dists', version=2, cross_validate=cross_validation_error, y_name='Weight')
-        # conf_acc_diff_plot(conf_acc_diff, save_plots_loc, dataset, args.model, trained_loss, divide=args.divide, ds='val_dists_bins', version=2)
-        # temp_bins_plot2(single_temp, single_temp2, bins_T, bins_T2, bin_boundaries, bin_boundaries2, save_plots_loc, dataset,
-        #                 args.model, trained_loss, divide=args.divide, ds='val_dists_bins', version=2, y_name='(1/Temperature) / Weight')
-        # new_softmaxes = bins_temperature_scale_test5(logits_test, temperature)
+            conf_acc_diff_plot(conf_acc_diff, save_plots_loc, dataset, model, trained_loss, divide=args.divide, ds='val_dists_bins', version=2)                                                                                            
+            bins_T2, single_temp2, bin_boundaries2, many_samples, best_iter2 = set_temperature3(logits_val, labels_val, temp_opt_iters, cross_validate=cross_validation_error, init_temp=init_temp,
+                                                                                            const_temp=const_temp, log=args.log, num_bins=num_bins)
+            # temp_bins_plot(single_temp, bins_T, bin_boundaries, save_plots_loc, dataset, model, trained_loss,
+            #                divide=args.divide, ds='val_dists', version=2, cross_validate=cross_validation_error, y_name='Weight')
+            
+            temp_bins_plot2(single_temp, single_temp2, bins_T, bins_T2, bin_boundaries, bin_boundaries2, save_plots_loc, dataset,
+                            model, trained_loss, divide=args.divide, ds='val_dists_bins', version=2, y_name='(1/Temperature) / Weight')
         _, _, _, predictions, confidences = test_classification_net_logits(new_softmaxes, labels_test, is_logits=False)
-        # reliability_plot_chexpert(confidences, predictions, labels_test, save_plots_loc, num_bins=num_bins, scaling_related='after_dists', save=True, single=args.single_weight)
+        reliability_plot_chexpert(confidences, predictions, labels_test, save_plots_loc, dataset, model, num_bins=num_bins, scaling_related='after_dists', save=True, single=args.single_weight)
         _, _, _, predictions, confidences = test_classification_net_logits(temperature_scale2(logits_test, single_temp), labels_test)
-        # reliability_plot_chexpert(confidences, predictions, labels_test, save_plots_loc, num_bins=num_bins, scaling_related='after_single', save=True)
+        reliability_plot_chexpert(confidences, predictions, labels_test, save_plots_loc, dataset, model, num_bins=num_bins, scaling_related='after_single', save=True)
         ece = ece_criterion(new_softmaxes, labels_test, is_logits=False).item()
         ece_single = ece_criterion(temperature_scale2(logits_test, single_temp), labels_test).item()
     
     elif args.method == 'bins':
-        temp_bins_plot_chexpert(single_temp, bins_T, bin_boundaries, save_plots_loc,
+        temp_bins_plot_chexpert(single_temp, bins_T, bin_boundaries, save_plots_loc, dataset, model,
                        divide=args.divide, ds='val', version=2, cross_validate=cross_validation_error)
-        #temp_bins_plot2(single_temp, single_temp2, bins_T, bins_T2, bin_boundaries, bin_boundaries2, save_plots_loc, dataset, args.model, 
+        #temp_bins_plot2(single_temp, single_temp2, bins_T, bins_T2, bin_boundaries, bin_boundaries2, save_plots_loc, dataset, model, 
         #                trained_loss, divide=args.divide, ds='val_two_models', version=2)
         scaled_logits, ece_bin, single_ece_bin, origin_ece_bin, ece_list = bins_temperature_scale_test3(logits_test, labels_test, bins_T,
                                                                                                         args.temp_opt_iters,
@@ -327,22 +364,23 @@ if __name__ == "__main__":
         #ece_list2 = [p_ece2] + ece_list2
         ece_single = ece_criterion(temperature_scale2(logits_test, single_temp), labels_test).item()
         #ece_single2 = ece_criterion(temperature_scale2(logits_test, single_temp2), labels_test).item()
-        #ece_iters_plot2(ece_single, ece_single2, ece_list, ece_list2, save_plots_loc, dataset, args.model, 
+        #ece_iters_plot2(ece_single, ece_single2, ece_list, ece_list2, save_plots_loc, dataset, model, 
         #                trained_loss, divide=args.divide, ds='val_two_models_iters', version=2)
         _, _, _, predictions, confidences = test_classification_net_logits(scaled_logits, labels_test)
-        reliability_plot_chexpert(confidences, predictions, labels_test, save_plots_loc, num_bins=num_bins, scaling_related='after_bins', save=True)
-        ece_bin_plot_chexpert(ece_bin, single_ece_bin, origin_ece_bin, save_plots_loc,
+        reliability_plot_chexpert(confidences, predictions, labels_test, save_plots_loc, dataset, model, num_bins=num_bins, scaling_related='after_bins', save=True)
+        ece_bin_plot_chexpert(ece_bin, single_ece_bin, origin_ece_bin, save_plots_loc, dataset, model,
                        divide=args.divide, ds='test', version=2)
         ece = ece_criterion(scaled_logits, labels_test).item()
     else:
         ece = ece_criterion(class_temperature_scale2(logits_test, csece_temperature), labels_test).item()
         ece_single = ece_criterion(temperature_scale2(logits_test, single_temp), labels_test).item()
     # _, _, _, predictions, confidences = test_classification_net_logits(temperature_scale2(logits_test, single_temp), labels_test)
-    # reliability_plot(confidences, predictions, labels_test, save_plots_loc, dataset, args.model, trained_loss, num_bins=num_bins, scaling_related='after_single', save=True)
+    # reliability_plot(confidences, predictions, labels_test, save_plots_loc, dataset, model, trained_loss, num_bins=num_bins, scaling_related='after_single', save=True)
     #_, acc, _, _, _ = test_classification_net_logits(class_temperature_scale2(logits_test, csece_temperature), labels_test)
     
     if args.log:
         print ('Post-scaling ECE (' + args.method + ' scaling): ' + str(ece))
         print ('Post-scaling ECE (Single temp scaling): ' + str(ece_single))
         print ('Post-scaling accuracy: ' + str(p_acc))
+        print ('Pre-scaling ECE: ' + str(p_ece))
         

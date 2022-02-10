@@ -83,7 +83,7 @@ def reliability_plot(confs, preds, labels, save_plots_loc, dataset, model, train
     else:
         plt.show()
         
-def reliability_plot_chexpert(confs, preds, labels, save_plots_loc, num_bins=15, scaling_related='before', save=False, single=False):
+def reliability_plot_chexpert(confs, preds, labels, save_plots_loc, dataset, model, num_bins=15, scaling_related='before', save=False, single=False):
     '''
     Method to draw a reliability plot from a model's predictions and confidences.
     '''
@@ -101,9 +101,9 @@ def reliability_plot_chexpert(confs, preds, labels, save_plots_loc, num_bins=15,
     plt.legend()
     if save:
         if single:
-            plt.savefig(os.path.join(save_plots_loc, 'covid19', 'reliability_plot_{}_single_w_covid19.pdf'.format(scaling_related)), dpi=40)
+            plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'reliability_plot_{}_single_w_{}_{}.pdf'.format(scaling_related, dataset, model)), dpi=40)
         else:
-            plt.savefig(os.path.join(save_plots_loc, 'covid19', 'reliability_plot_{}_covid19.pdf'.format(scaling_related)), dpi=40)
+            plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'reliability_plot_{}_{}_{}.pdf'.format(scaling_related, dataset, model)), dpi=40)
     else:
         plt.show()
 
@@ -296,7 +296,7 @@ def temp_bins_plot(single_T, bins_T, bin_boundaries, save_plots_loc, dataset, mo
     # plt.legend(fontsize=14)
     plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'temp_bins_{}_iters_{}_{}_{}_ver_{}_{}_{}_{}_smooth.pdf'.format(bins_T.shape[1], dataset, model, trained_loss, version, divide, ds, cross_validate)), dpi=40)
     
-def temp_bins_plot_chexpert(single_T, bins_T, bin_boundaries, save_plots_loc, acc_check=False, const_temp=False, divide='reg_divide', ds='val', version=1, cross_validate='ECE', y_name='Temperature'):
+def temp_bins_plot_chexpert(single_T, bins_T, bin_boundaries, save_plots_loc, dataset, model, acc_check=False, const_temp=False, divide='reg_divide', ds='val', version=1, cross_validate='ECE', y_name='Temperature'):
     bin_boundaries = torch.linspace(0, bins_T.shape[0], bins_T.shape[0] + 1)
     bin_lowers = bin_boundaries[:-1]
     plt.figure()
@@ -315,7 +315,7 @@ def temp_bins_plot_chexpert(single_T, bins_T, bin_boundaries, save_plots_loc, ac
     plt.ylabel(y_name, fontsize=16)
     plt.yticks(fontsize=10)
     # plt.legend(fontsize=14)
-    plt.savefig(os.path.join(save_plots_loc, 'chexpert', 'temp_bins_{}_iters_ver_{}_{}_{}_{}_smooth_chexpert.pdf'.format(bins_T.shape[1], version, divide, ds, cross_validate)), dpi=40)
+    plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'temp_bins_{}_iters_ver_{}_{}_{}_{}_smooth_{}_{}.pdf'.format(bins_T.shape[1], version, divide, ds, cross_validate, dataset, model)), dpi=40)
 
 
 def ece_bin_plot(ece_bin, single_ece_bin, origin_ece_bin, save_plots_loc, dataset, model, trained_loss, divide='reg_divide', ds='val', version=1):
@@ -335,7 +335,7 @@ def ece_bin_plot(ece_bin, single_ece_bin, origin_ece_bin, save_plots_loc, datase
                              'ece_bins_{}_{}_{}_ver_{}_{}_{}_smooth.pdf'.format(dataset, model, trained_loss, version,
                                                                                 divide, ds)), dpi=40)
     
-def ece_bin_plot_chexpert(ece_bin, single_ece_bin, origin_ece_bin, save_plots_loc, divide='reg_divide', ds='val', version=1):
+def ece_bin_plot_chexpert(ece_bin, single_ece_bin, origin_ece_bin, save_plots_loc, dataset, model, divide='reg_divide', ds='val', version=1):
     plt.figure()
     origin_ece_bin = [i * 100 for i in origin_ece_bin]
     single_ece_bin = [i * 100 for i in single_ece_bin]
@@ -348,7 +348,7 @@ def ece_bin_plot_chexpert(ece_bin, single_ece_bin, origin_ece_bin, save_plots_lo
     plt.ylabel('ECE(%)', fontsize=16)
     plt.yticks(fontsize=10)
     plt.legend(fontsize=10)
-    plt.savefig(os.path.join(save_plots_loc, 'chexpert',
+    plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model),
                              'ece_bins_ver_{}_{}_{}_smooth_chexpert.pdf'.format(version,
                                                                                 divide, ds)), dpi=40)
     

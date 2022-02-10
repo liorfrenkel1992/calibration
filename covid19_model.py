@@ -9,19 +9,21 @@ from torchvision import models
 
 from sklearn.metrics import confusion_matrix
 
-from dataset import Chexpert, Covid19
+from dataset import CXR14, Chexpert, Covid19, HAM10000
 
 os.environ["CUDA_VISIBLE_DEVICES"] = "1"
 
 def parseArgs():
-    load_model_path = 'vanilla_medical_classifier_chexpert'
+    load_model_path = 'dataverse/dataverse_files/ckpts'
 
     parser = argparse.ArgumentParser(
         description="Train/test medical imaging models",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("--load_model_path", type=str, default=load_model_path, dest="load_model_path",
                         help="Path of saved model")
-    parser.add_argument("--model_name", type=str, default="chexpert", dest="model_name",
+    parser.add_argument("--ds_name", type=str, default="chexpert", dest="ds_name",
+                        help="ds name to train/test")
+    parser.add_argument("--model_name", type=str, default="densenet121", dest="model_name",
                         help="model name to train/test")
     parser.add_argument("--n_classes", type=int, default=14, help="number of classes")
     parser.add_argument("-use_sched", action='store_true', help="use scheduler")
@@ -154,6 +156,36 @@ class ResNet(nn.Module):
         out = self.classifier(g.squeeze())  # bs x num_classes
         return out
     
+    
+class DenseNet(nn.Module):
+    def __init__(self, num_classes, is_pretrained=True):
+        super().__init__()
+        self.densenet = models.densenet121(pretrained=is_pretrained)
+        fc_num_features = self.densenet.classifier.in_features
+        self.densenet.classifier = nn.Linear(in_features=fc_num_features,
+                                    out_features=num_classes,
+                                    bias=True)
+        return
+
+    def forward(self, x):
+        out = self.densenet(x)
+        return out
+    
+
+class VGG_BN(nn.Module):
+    def __init__(self, num_classes, is_pretrained=True):
+        super().__init__()
+        self.vgg = models.vgg19_bn(pretrained=is_pretrained)
+        fc_num_features = self.vgg.classifier[6].in_features
+        self.vgg.classifier[6] = nn.Linear(in_features=fc_num_features,
+                                    out_features=num_classes,
+                                    bias=True)
+        return
+
+    def forward(self, x):
+        out = self.vgg(x)
+        return out
+    
        
 def train(args, model, trainloader, valloader, num_classes=14, batch_size=32, lr=0.0001, epochs=30, print_every=10):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -162,7 +194,7 @@ def train(args, model, trainloader, valloader, num_classes=14, batch_size=32, lr
     #  optim.Adam(model.parameters(), lr=lr, betas=(0.9, 0.99))
     optimizer = torch.optim.Adam(model.parameters(),
                                           lr=lr,
-                                          betas=(0.5, 0.999), amsgrad=True)
+                                          betas=(0.9, 0.999), amsgrad=True)
     if args.use_sched:
         scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='max',
                                                                         factor=0.8, patience=5, cooldown=3, verbose=True)
@@ -197,7 +229,7 @@ def train(args, model, trainloader, valloader, num_classes=14, batch_size=32, lr
                         test_loss += batch_loss.item()
                         
                         softmaxes = F.softmax(pred, dim=1)
-                        confidences, predictions = torch.max(softmaxes, 1)
+                        _, predictions = torch.max(softmaxes, 1)
                         accuracy += torch.mean((predictions.eq(labels)).float()).item()
                         labels_list.extend(labels.cpu().numpy().tolist())
                         predictions_list.extend(predictions.cpu().numpy().tolist())
@@ -216,16 +248,22 @@ def train(args, model, trainloader, valloader, num_classes=14, batch_size=32, lr
                 if args.use_sched:
                     scheduler.step(val_loss)
                 model.train()
+                
+        if not args.ds_name == 'covid19' or (args.ds_name == 'covid19' and epoch == epochs - 1):
+            if args.use_sched:
+                torch.save(model, '{}/{}_{}_epochs_{},lr_{},bs_{}_{}_classes_epoch_{}_val_loss_{}_sched.pth'.format(args.load_model_path, args.ds_name, args.model_name, epochs, lr, batch_size, num_classes, epoch, val_loss))
+            else:
+                torch.save(model, '{}/{}_{}_epochs_{},lr_{},bs_{}_{}_classes_epoch_{}_val_loss_{}_no_sched.pth'.format(args.load_model_path, args.ds_name, args.model_name, epochs, lr, batch_size, num_classes, epoch, val_loss))
 
-    if args.use_sched:
-        torch.save(model, '{}/{}_resnet50_epochs_{},lr_{},bs_{}_{}_classes_sched.pth'.format(args.load_model_path, args.model_name, epochs, lr, batch_size, num_classes))
-    else:
-        torch.save(model, '{}/{}_resnet50_epochs_{},lr_{},bs_{}_{}_classes_no_sched.pth'.format(args.load_model_path, args.model_name, epochs, lr, batch_size, num_classes))
+    # if args.use_sched:
+    #     torch.save(model, '{}/{}_{}_epochs_{},lr_{},bs_{}_{}_classes_sched.pth'.format(args.load_model_path, args.ds_name, args.model_name, epochs, lr, batch_size, num_classes))
+    # else:
+    #     torch.save(model, '{}/{}_{}_epochs_{},lr_{},bs_{}_{}_classes_no_sched.pth'.format(args.load_model_path, args.ds_name, args.model_name, epochs, lr, batch_size, num_classes))
 
 def test(args, model, testloader, num_classes=14, batch_size=32, lr=0.0001, epochs=30):
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-    model = torch.load('{}/{}_resnet50_epochs_{},lr_{},bs_{}_{}_classes.pth'.format(args.load_model_path, args.model_name, epochs, lr, batch_size, num_classes))
+    model = torch.load('{}/{}_{}_epochs_{},lr_{},bs_{}_{}_classes.pth'.format(args.load_model_path, args.ds_name, args.model_name, epochs, lr, batch_size, num_classes))
     model.to(device)
     model.eval()
     
@@ -267,9 +305,23 @@ if __name__ == "__main__":
     n_classes = args.n_classes
 
     # model = DarkCovidNet(output_size=14)
-    model = ResNet(num_classes=n_classes)
+    if args.model_name == 'resnet50':
+        model = ResNet(num_classes=n_classes)
+    elif args.model_name == 'densenet121':
+        model = DenseNet(num_classes=n_classes)
+    elif args.model_name == 'vgg_bn':
+        model = VGG_BN(num_classes=n_classes)
+        
+    if args.ds_name == 'chexpert':
+        ds = Chexpert
+    elif args.ds_name == 'cxr14':
+        ds = CXR14
+    elif args.ds_name == 'covid19':
+        ds = Covid19
+    elif args.ds_name == 'ham10000':
+        ds = HAM10000
 
-    # covid19_ds = Covid19('/mnt/dsi_vol1/users/frenkel2/data/calibration/focal_calibration-1/COVID-19/X-Ray Image DataSet')
+    # covid19_ds = HAM10000(args)
     # len_data = len(covid19_ds)
     # len_val = int(0.1 * len_data)
     # len_test = int(0.1 * len_data)
@@ -285,14 +337,14 @@ if __name__ == "__main__":
     # train_set = Covid19('/mnt/dsi_vol1/users/frenkel2/data/calibration/focal_calibration-1/COVID-19', 'train')
     # val_set = Covid19('/mnt/dsi_vol1/users/frenkel2/data/calibration/focal_calibration-1/COVID-19', 'val')
     # test_set = Covid19('/mnt/dsi_vol1/users/frenkel2/data/calibration/focal_calibration-1/COVID-19', 'test')
-
+    
     if args.mode == 'train':
-        train_set = Chexpert(args, type='train')
-        val_set = Chexpert(args, type='val')
+        train_set = ds(args, type='train')
+        val_set = ds(args, type='val')
         trainloader = DataLoader(train_set, batch_size=batch_size, shuffle=True, num_workers=4)
         valloader = DataLoader(val_set, batch_size=batch_size, shuffle=True, num_workers=4)
         train(args, model, trainloader, valloader, num_classes=n_classes, epochs=epochs, lr=lr, batch_size=batch_size)
     else:
-        test_set = Chexpert(args, type='test')
+        test_set = ds(args, type='test')
         testloader = DataLoader(test_set, batch_size=batch_size, shuffle=True, num_workers=4)
         test(args, model, testloader, num_classes=n_classes, epochs=epochs, lr=lr, batch_size=batch_size)

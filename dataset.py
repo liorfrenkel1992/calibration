@@ -12,14 +12,14 @@ import csv
 class LogitsLabelsDataset(Dataset):
     """logits and labels dataset."""
 
-    def __init__(self, root_dir, type='val'):
+    def __init__(self, args, root_dir, type='val'):
         """
         Args:
             root_dir (string): Directory with all the logits and labels.
         """
-        with open(root_dir + '/' + type + '_labels.pickle', 'rb') as handle:
+        with open(root_dir + '/logits/' + args.model_name + '/' + type + '_labels.pickle', 'rb') as handle:
             self.labels = pickle.load(handle)
-        with open(root_dir + '/' + type + '_logits.pickle', 'rb') as handle:
+        with open(root_dir + '/logits/' + args.model_name + '/' + type + '_logits.pickle', 'rb') as handle:
             self.logits = pickle.load(handle)
             
     def __len__(self):
@@ -32,12 +32,12 @@ class LogitsLabelsDataset(Dataset):
 class Covid19(Dataset):
     """Covid19 dataset"""
     
-    def __init__(self, root_dir='Covid-19', type='train'):
+    def __init__(self, args, root_dir='COVID-19', type='train'):
         """
         Args:
             root_dir (string): Directory with all images.
         """
-        self.trans = transforms.Compose([transforms.Grayscale(num_output_channels=1), transforms.Resize((256, 256)), transforms.ToTensor()])
+        self.trans = transforms.Compose([transforms.Resize((256, 256)), transforms.ToTensor()])
         self.path = root_dir
         
         with open(root_dir + '/' + type + '_labels.p', 'rb') as handle:
@@ -65,7 +65,7 @@ class Covid19(Dataset):
 
     def __getitem__(self, idx):
         img_path = self.imgs[idx]
-        img = Image.open(img_path)
+        img = Image.open(img_path).convert('RGB')
         img = self.trans(img)
         
         # if img.shape[0] < 3:
@@ -254,6 +254,119 @@ class Chexpert(Dataset):
     def __getitem__(self, idx):
         img_path = self.imgs[idx]
         img = Image.open('/home/dsi/davidsr/' + img_path).convert('RGB')
+        img = self.trans(img)
+        
+        # if img.shape[0] < 3:
+        #     img = img.repeat(3, 1, 1)
+        
+        # mean, std = img.mean([1,2]), img.std([1,2])
+        # norm = transforms.Compose([transforms.Normalize(mean, std)])
+        
+        # img = norm(img)
+            
+        return img, self.labels[idx]
+    
+
+class CXR14(Dataset):
+    """CXR14 dataset"""
+    
+    def __init__(self, args, root_dir='/mnt/dsi_vol1/users/frenkel2/data/calibration/focal_calibration-1/CXR14', type='train'):
+        """
+        Args:
+            root_dir (string): Directory with all images.
+        """
+        # csv_file = 'Data_Entry_2017_v2020.csv'
+        # df = pd.read_csv(root_dir + '/' + csv_file)
+        # imgs = []
+        # labels = []
+        # for index, row in df.iterrows():
+        #     print(index)
+        #     imgs.append(root_dir + '/images/' + row['Image Index'])
+        #     labels.append(row['Finding Labels'].split('|')[0])
+                    
+        self.trans = transforms.Compose([transforms.Resize((256, 256)), transforms.ToTensor()])
+        self.path = root_dir
+        
+        with open(root_dir + '/' + type + '_labels.p', 'rb') as handle:
+            self.labels = pickle.load(handle)
+        with open(root_dir + '/' + type + '_imgs.p', 'rb') as handle:
+            self.imgs = pickle.load(handle)
+        
+        unique_labels = np.unique(self.labels)
+        self.labels_dict = {}
+        for inx, unique_label in enumerate(unique_labels):
+            self.labels_dict[unique_label] = inx
+            
+        new_labels = [self.labels_dict[label] for label in self.labels]
+        self.labels = new_labels
+                      
+    def __len__(self):
+        return len(self.imgs)
+
+    def __getitem__(self, idx):
+        img_path = self.imgs[idx]
+        img = Image.open(img_path).convert('RGB')
+        img = self.trans(img)
+        
+        # if img.shape[0] < 3:
+        #     img = img.repeat(3, 1, 1)
+        
+        # mean, std = img.mean([1,2]), img.std([1,2])
+        # norm = transforms.Compose([transforms.Normalize(mean, std)])
+        
+        # img = norm(img)
+            
+        return img, self.labels[idx]
+    
+
+class HAM10000(Dataset):
+    """HAM10000 dataset"""
+    
+    def __init__(self, args, root_dir='/mnt/dsi_vol1/users/frenkel2/data/calibration/focal_calibration-1/dataverse/dataverse_files', type='train'):
+        """
+        Args:
+            root_dir (string): Directory with all images.
+        """
+        # csv_file = 'HAM10000_metadata'
+        # df = pd.read_csv(root_dir + '/' + csv_file)
+        # imgs = []
+        # labels = []
+        # for index, row in df.iterrows():
+        #     print(index)
+        #     imgs.append(root_dir + '/images/' + row['image_id'])
+        #     labels.append(row['dx'])
+                    
+        self.trans = transforms.Compose([transforms.Resize((256, 256)), transforms.ToTensor()])
+        self.path = root_dir
+        
+        with open(root_dir + '/' + type + '_labels.p', 'rb') as handle:
+            self.labels = pickle.load(handle)
+        with open(root_dir + '/' + type + '_imgs.p', 'rb') as handle:
+            self.imgs = pickle.load(handle)
+            
+        # with open(root_dir + '/labels.p', 'rb') as handle:
+        #     self.labels = pickle.load(handle)
+        # with open(root_dir + '/imgs.p', 'rb') as handle:
+        #     self.imgs = pickle.load(handle)
+            
+        # batch = list(zip(self.imgs, self.labels))
+        # random.shuffle(batch)
+        # self.imgs, self.labels = zip(*batch)
+        
+        unique_labels = np.unique(self.labels)
+        self.labels_dict = {}
+        for inx, unique_label in enumerate(unique_labels):
+            self.labels_dict[unique_label] = inx
+            
+        new_labels = [self.labels_dict[label] for label in self.labels]
+        self.labels = new_labels
+                      
+    def __len__(self):
+        return len(self.imgs)
+
+    def __getitem__(self, idx):
+        img_path = self.imgs[idx]
+        img = Image.open(img_path + '.jpg').convert('RGB')
         img = self.trans(img)
         
         # if img.shape[0] < 3:

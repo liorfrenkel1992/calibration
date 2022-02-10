@@ -1342,7 +1342,7 @@ def set_temperature3(logits, labels, iters=1, cross_validate='ece',
                 
         softmaxes = F.softmax(logits, dim=1)
         confidences, predictions = torch.max(softmaxes, 1)
-        #confidences[confidences > 0.9995] = 0.9995
+        # confidences[confidences > 0.9995] = 0.9995
         accuracies = predictions.eq(labels)
         
         bin_boundaries = torch.linspace(0, 1, n_bins + 1).unsqueeze(0).repeat((iters, 1)).numpy()
@@ -1399,12 +1399,12 @@ def set_temperature3(logits, labels, iters=1, cross_validate='ece',
             for bin_lower, bin_upper in zip(bin_lowers, bin_uppers):
                 in_bin = confidences.gt(bin_lower.item()) * confidences.le(bin_upper.item())
                 prop_in_bin = in_bin.float().mean()
-                if confidences[in_bin].shape[0] < 20 and cross_validate == 'ece':
-                    samples = T_bece[in_bin].shape[0]
-                    print('number of samples in bin {0}: {1}'.format(bin + 1, samples))
-                    few_examples[bin] = samples
-                    bin += 1
-                    continue
+                # if confidences[in_bin].shape[0] < 20 and cross_validate == 'ece':
+                #     samples = T_bece[in_bin].shape[0]
+                #     print('number of samples in bin {0}: {1}'.format(bin + 1, samples))
+                #     few_examples[bin] = samples
+                #     bin += 1
+                #     continue
                 if any(in_bin):
                     #init_temp_value = T_bece[in_bin][0].item()
                     T = 0.1
@@ -1517,7 +1517,10 @@ def set_temperature3(logits, labels, iters=1, cross_validate='ece',
                 iters = i + 1
                 break
 
-            ece_ada_list.append(ece_in_iter.item())
+            if isinstance(ece_in_iter, int):
+                ece_ada_list.append(ece_in_iter)
+            else:
+                ece_ada_list.append(ece_in_iter.item())
             if cross_validate == 'ece':
                 logits = logits / torch.unsqueeze(bece_temperature, -1)
             else:
@@ -1553,7 +1556,7 @@ def bins_temperature_scale_test4(logits, labels, bins_T, iters, bin_boundaries, 
         """
         Perform temperature scaling on logits
         """
-        ece_criterion = ECELoss(n_bins=6).cuda()
+        ece_criterion = ECELoss(n_bins=5).cuda()
         softmaxes = F.softmax(logits, dim=1)
         confidences, predictions = torch.max(softmaxes, 1)
         accuracies = predictions.eq(labels)
@@ -1604,7 +1607,7 @@ def set_temperature4(logits, labels, iters=1, cross_validate='ece',
     """
     if const_temp:
         nll_criterion = nn.CrossEntropyLoss().cuda()
-        ece_criterion = ECELoss().cuda()
+        ece_criterion = ECELoss(n_bins=num_bins).cuda()
 
         # Calculate NLL and ECE before temperature scaling
         before_temperature_nll = nll_criterion(logits, labels).item()
@@ -1791,7 +1794,7 @@ def set_temperature4(logits, labels, iters=1, cross_validate='ece',
                     """
                     
                     weight_i = (origin_accuracy_in_bin - 1/n_classes) / (origin_avg_confidence_in_bin - 1/n_classes)
-                    # weight_i = max(0, min(1, weight_i.item()))
+                    weight_i = max(0, min(1, weight_i.item()))
                     T_opt_bece[in_bin] = weight_i
                     
                     # Compute bin's updated ECE
@@ -1888,11 +1891,11 @@ def bins_temperature_scale_test5(logits, weight):
                                     
         return softmaxes
 
-def set_temperature5(logits, labels, cross_validate='ece', log=True):
+def set_temperature5(logits, labels, n_bins, cross_validate='ece', log=True):
     """
     Tune the tempearature of the model (using the validation set) with cross-validation on ECE without bins
     """
-    ece_criterion = ECELoss().cuda()
+    ece_criterion = ECELoss(n_bins=n_bins).cuda()
     nll_criterion = nn.CrossEntropyLoss().cuda()
 
     # Calculate ECE before temperature scaling
@@ -1933,7 +1936,7 @@ def set_temperature5(logits, labels, cross_validate='ece', log=True):
         temperature = T_opt_nll
     
     after_temperature_ece = ece_criterion(temperature_scale2(logits, temperature), labels).item()
-    print('Temperature for single TS: {}'.format(after_temperature_ece))
+    print('Temperature for single TS: {}'.format(temperature))
         
     temperature = T_opt_ece
     
@@ -1983,17 +1986,18 @@ def set_temperature5(logits, labels, cross_validate='ece', log=True):
     
     return weight, temperature 
 
-class VectorScaling():
-    def __init__(self, val_loader, input_size, device, load_model_path, lr=0.05, epochs=5):
+class MatrixScaling():
+    def __init__(self, val_loader, input_size, device, load_model_path, is_matrix=True, lr=0.05, epochs=5):
         self.lr = lr
         self.epochs = epochs
         self.val_loader = val_loader
         self.device = device
         self.load_model_path = load_model_path
         self.input_size = input_size
+        self.is_matrix = is_matrix
         
     def find_best_transform(self, save_model_path, save_model=False):
-        model = LinearModel(self.input_size, is_matrix=False).to(self.device)
+        model = LinearModel(self.input_size, is_matrix=self.is_matrix).to(self.device)
         optimizer = optim.SGD(model.parameters(), lr=self.lr)
         criterion = nn.CrossEntropyLoss().to(self.device)
         
@@ -2014,7 +2018,7 @@ class VectorScaling():
             torch.save(model.state_dict(), '{}/vs_model_{}_epochs_lr_{}.pt'.format(save_model_path, self.epochs, self.lr))
             
     def evaluate(self, logits):
-        model = LinearModel(self.input_size, is_matrix=False).to(self.device)
+        model = LinearModel(self.input_size, is_matrix=self.is_matrix).to(self.device)
         model.load_state_dict(torch.load('{}/vs_model_{}_epochs_lr_{}.pt'.format(self.load_model_path, self.epochs, self.lr)))
         model.eval()
         
