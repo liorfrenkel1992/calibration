@@ -16,10 +16,10 @@ from covid19_model import *
 
 # Import metrics to compute
 from Metrics.metrics import test_classification_net_logits
-from Metrics.metrics import ECELoss
+from Metrics.metrics import ECELoss, ClassECELoss
 from Metrics.metrics2 import ECE, softmax
 from Metrics.plots import temp_bins_plot_chexpert, ece_bin_plot_chexpert, logits_diff_bin_plot, reliability_plot_chexpert, temp_bins_plot2
-from Metrics.plots import plot_temp_different_bins, ece_iters_plot2, plot_trajectory, conf_acc_diff_plot
+from Metrics.plots import plot_temp_different_bins, ece_iters_plot2, plot_trajectory, conf_acc_diff_plot, ece_class_plot, conf_acc_diff_plot_class
 
 from dataset import Chexpert, LogitsLabelsDataset, Covid19, HAM10000
 
@@ -254,6 +254,7 @@ if __name__ == "__main__":
     # print('test labels: ', count_labels_test_dict)
 
     ece_criterion = ECELoss(n_bins=10).cuda()
+    csece_criterion = ClassECELoss(n_bins=10).cuda()
     # vector_scaling = TestVectorScaling()
     
     # before_indices, after_indices = check_movements(logits_val, const=2)
@@ -262,10 +263,22 @@ if __name__ == "__main__":
     
     p_ece = ece_criterion(logits_test, labels_test).item()
     # p_ece2 = ece_criterion(logits_test2, labels_test2).item()
-    _, p_acc, _, predictions, confidences = test_classification_net_logits(logits_test, labels_test)
+    conf_matrix, p_acc, _, predictions, confidences = test_classification_net_logits(logits_test, labels_test)
+    print(conf_matrix)
     if not os.path.isdir(save_plots_loc + '/' + dataset + '_' + model):
         os.mkdir(save_plots_loc + '/' + dataset + '_' + model)
     reliability_plot_chexpert(confidences, predictions, labels_test, save_plots_loc, dataset, model, num_bins=num_bins, scaling_related='before', save=True)
+    
+    if dataset == 'cxr14':
+        classes_names = ['Atelectasis', 'Cardiomegaly', 'Effusion', 'Infiltration', 'Mass', 'Nodule', 'Pneumonia', 'Pneumothorax', 'Consolidation', 'Edema', 'Emphysema', 'Fibrosis', 'PT', 'Hernia', 'No findings']
+    elif dataset == 'ham10000':
+        classes_names = ['akiec', 'bcc', 'bkl', 'df', 'mel', 'nv', 'vasc']
+    else:
+        classes_names = []
+    csece, c_acc, conf_acc_diffs_before = csece_criterion(logits_test, labels_test)
+    print(c_acc)
+    ece_class_plot(csece, save_plots_loc, dataset, model, trained_loss, scaling_related='before', unc=True)
+    # conf_acc_diff_plot_class(conf_acc_diffs, classes_names, save_plots_loc, dataset, model, trained_loss, divide=args.divide, ds=dataset, version='before')
     
     # weights = vector_scaling(logits_val, p_acc)
     
@@ -346,6 +359,10 @@ if __name__ == "__main__":
         reliability_plot_chexpert(confidences, predictions, labels_test, save_plots_loc, dataset, model, num_bins=num_bins, scaling_related='after_single', save=True)
         ece = ece_criterion(new_softmaxes, labels_test, is_logits=False).item()
         ece_single = ece_criterion(temperature_scale2(logits_test, single_temp), labels_test).item()
+        
+        csece, _, conf_acc_diffs_after = csece_criterion(new_softmaxes, labels_test, is_logits=False)
+        ece_class_plot(csece, save_plots_loc, dataset, model, trained_loss, scaling_related='after_dists')
+        conf_acc_diff_plot_class(conf_acc_diffs_before, conf_acc_diffs_after, classes_names, save_plots_loc, dataset, model, trained_loss, divide=args.divide, ds=dataset, version='before_and_0.00-0.34after_dists')
     
     elif args.method == 'bins':
         temp_bins_plot_chexpert(single_temp, bins_T, bin_boundaries, save_plots_loc, dataset, model,
@@ -371,6 +388,11 @@ if __name__ == "__main__":
         ece_bin_plot_chexpert(ece_bin, single_ece_bin, origin_ece_bin, save_plots_loc, dataset, model,
                        divide=args.divide, ds='test', version=2)
         ece = ece_criterion(scaled_logits, labels_test).item()
+        
+        csece, _, conf_acc_diffs = csece_criterion(scaled_logits, labels_test)
+        ece_class_plot(csece, save_plots_loc, dataset, model, trained_loss, scaling_related='after_bins')
+        conf_acc_diff_plot_class(conf_acc_diffs, classes_names, save_plots_loc, dataset, model, trained_loss, divide=args.divide, ds=dataset, version='after_bins')
+        
     else:
         ece = ece_criterion(class_temperature_scale2(logits_test, csece_temperature), labels_test).item()
         ece_single = ece_criterion(temperature_scale2(logits_test, single_temp), labels_test).item()
