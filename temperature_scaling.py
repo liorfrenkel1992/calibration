@@ -1556,7 +1556,7 @@ def bins_temperature_scale_test4(logits, labels, bins_T, iters, bin_boundaries, 
         """
         Perform temperature scaling on logits
         """
-        ece_criterion = ECELoss(n_bins=5).cuda()
+        ece_criterion = ECELoss(n_bins=10).cuda()
         softmaxes = F.softmax(logits, dim=1)
         confidences, predictions = torch.max(softmaxes, 1)
         accuracies = predictions.eq(labels)
