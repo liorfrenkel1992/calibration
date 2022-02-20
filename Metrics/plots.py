@@ -201,6 +201,20 @@ def ece_acc_plot(acc, csece, save_plots_loc, dataset, model, trained_loss, acc_c
                 plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'ece_acc_{}_scaling_{}_{}_{}.pdf'.format(scaling_related, dataset, model, trained_loss)), dpi=40)
     plt.close()
     
+def ece_class_plot(csece, save_plots_loc, dataset, model, trained_loss, scaling_related='before', unc=False):
+    plt.figure(figsize=(10, 8))
+    plt.scatter(range(len(csece)), csece.cpu(), s=70)
+    plt.xlabel('Class number', fontsize=26)
+    plt.xticks(fontsize=18)
+    plt.ylabel('ECE', fontsize=26)
+    plt.yticks(fontsize=16)
+    #plt.ylim(0, 0.01)
+    if unc:
+        plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'uncalibrated_ece_class_{}_scaling_{}_{}_{}.pdf'.format(scaling_related, dataset, model, trained_loss)), dpi=40)
+    else:
+        plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'ece_class_{}_scaling_{}_{}_{}.pdf'.format(scaling_related, dataset, model, trained_loss)), dpi=40)
+    plt.close()
+    
 def ece_iters_plot(scaled_model, save_plots_loc, dataset, model, trained_loss, init_temp, acc_check=False):
     plt.figure()
     plt.plot(range(scaled_model.iters + 1), scaled_model.ece_list)
@@ -517,4 +531,31 @@ def conf_acc_diff_plot(conf_acc_diff, save_plots_loc, dataset, model, trained_lo
     plt.ylabel('Confidence - Accuracy', fontsize=16)
     plt.yticks(fontsize=10)
     plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'conf_acc_diff_bins_{}_{}_{}_{}_ver_{}_{}_{}.pdf'.format(len(conf_acc_diff), dataset, model, trained_loss, version, divide, ds)), dpi=40)
+    
+def conf_acc_diff_plot_class(conf_acc_diff_before, conf_acc_diff_after, classes_names, save_plots_loc, dataset, model, trained_loss, divide='reg_divide', ds='val', version=1):
+    if dataset == 'cxr14':
+        labelpad = 0
+    else:
+        labelpad = 5
+    plt.figure()
+    plt.scatter(range(len(conf_acc_diff_before)), conf_acc_diff_before.cpu(), s=70, label='Uncalibrated')
+    plt.scatter(range(len(conf_acc_diff_before)), conf_acc_diff_after.cpu(), s=70, label='After CWS', marker='x')
+    # plt.plot(range(len(conf_acc_diff_before)), len(conf_acc_diff_before) * [0])
+    plt.axhline(y = 0, color = 'r', linestyle = '-')
+    plt.xlabel('Class', fontsize=16)
+    plt.xticks(range(0, len(conf_acc_diff_before), 2), fontsize=10)
+    # plt.ylabel('Confidence - Accuracy ' + r'($x{1e}^2$)', fontsize=13)
+    plt.ylabel(r'$C_i - A_i$', fontsize=13, labelpad=labelpad)
+    plt.yticks(fontsize=10)
+    plt.legend(fontsize=16)
+    plt.savefig(os.path.join(save_plots_loc, '{}_{}'.format(dataset, model), 'conf_acc_diff_bins_{}_{}_{}_{}_ver_{}_{}_{}.pdf'.format(len(conf_acc_diff_before), dataset, model, trained_loss, version, divide, ds)), dpi=40)
+    classes_conf_acc_diff_before = {}
+    classes_conf_acc_diff_after = {}
+    for inx, label in enumerate(classes_names):
+        classes_conf_acc_diff_before[label] = round(conf_acc_diff_before[inx].item(), 4)
+        classes_conf_acc_diff_after[label] = round(conf_acc_diff_after[inx].item(), 4)
+        
+    print('before: {}'.format(classes_conf_acc_diff_before))
+    print('after: {}'.format(classes_conf_acc_diff_after))
+    
     
