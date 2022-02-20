@@ -283,15 +283,32 @@ class ClassECELoss(nn.Module):
     '''
     def __init__(self, n_bins=15):
         super(ClassECELoss, self).__init__()
-        bin_boundaries = torch.linspace(0, 1, n_bins + 1)
+        self.nbins = n_bins
+        # bin_boundaries = torch.linspace(0, 1, n_bins + 1)
+        # self.bin_lowers = bin_boundaries[:-1]
+        # self.bin_uppers = bin_boundaries[1:]
+        
+    def histedges_equalN(self, x):
+        npt = len(x)
+        return np.interp(np.linspace(0, npt, self.nbins + 1),
+                     np.arange(npt),
+                     np.sort(x))
+
+    def forward(self, logits, labels, is_logits=True):
+        if is_logits:
+            softmaxes = F.softmax(logits, dim=1)
+            confidences, choices = torch.max(softmaxes, dim=1)
+        else:
+            softmaxes = logits
+            confidences, choices = torch.max(softmaxes, dim=1)
+        n, bin_boundaries = np.histogram(confidences.cpu().detach(), self.histedges_equalN(confidences.cpu().detach()))
+        #print(n,confidences,bin_boundaries)
         self.bin_lowers = bin_boundaries[:-1]
         self.bin_uppers = bin_boundaries[1:]
-
-    def forward(self, logits, labels):
+        
         num_classes = int((torch.max(labels) + 1).item())
-        softmaxes = F.softmax(logits, dim=1)
         per_class_sce = None
-        choices = torch.argmax(softmaxes, dim=1)
+        conf_acc_diffs = None
         classes_acc = []
 
         for i in range(num_classes):
@@ -300,6 +317,7 @@ class ClassECELoss(nn.Module):
             class_choices = torch.sum(class_choices.eq(i)).item()
             class_accuracy = class_choices / torch.sum(labels.eq(i)).item()
             class_sce = torch.zeros(1, device=logits.device)
+            conf_acc_diff = torch.zeros(1, device=logits.device)
             labels_in_class = labels.eq(i) # one-hot vector of all positions where the label belongs to the class i
 
             for bin_lower, bin_upper in zip(self.bin_lowers, self.bin_uppers):
@@ -309,15 +327,19 @@ class ClassECELoss(nn.Module):
                     accuracy_in_bin = labels_in_class[in_bin].float().mean()
                     avg_confidence_in_bin = class_confidences[in_bin].mean()
                     class_sce += torch.abs(avg_confidence_in_bin - accuracy_in_bin) * prop_in_bin
+                    conf_acc_diff += (avg_confidence_in_bin - accuracy_in_bin) * prop_in_bin
+                    print('avg acc in class '.format(i, avg_confidence_in_bin))
 
             if (i == 0):
                 per_class_sce = class_sce
+                conf_acc_diffs = conf_acc_diff
             else:
                 per_class_sce = torch.cat((per_class_sce, class_sce), dim=0)
+                conf_acc_diffs = torch.cat((conf_acc_diffs, conf_acc_diff), dim=0)
             
             classes_acc.append(class_accuracy)
 
-        return per_class_sce, classes_acc
+        return per_class_sce, classes_acc, conf_acc_diffs
     
     
 class ClassECELoss2(nn.Module):
