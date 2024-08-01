@@ -19,7 +19,7 @@ from Metrics.plots import plot_temp_different_bins, ece_iters_plot2, plot_trajec
 
 # Import temperature scaling and NLL utilities
 from temperature_scaling import set_temperature2, temperature_scale2, class_temperature_scale2, set_temperature3, bins_temperature_scale_test3, set_temperature4
-from temperature_scaling import bins_temperature_scale_test4, bins_temperature_scale_test5, set_temperature5
+from temperature_scaling import bins_temperature_scale_test4, bins_temperature_scale_test5, set_temperature5, set_temperature_binary
 
 # Import unpickling logits and labels
 from evaluate_scripts.unpickle_probs import unpickle_probs

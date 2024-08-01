@@ -5,11 +5,11 @@ import pickle
 
 from torch.utils.data.dataloader import DataLoader
 
-# Import chexport dataset
-import vanilla_medical_classifier_chexpert.Testers as Test
-import vanilla_medical_classifier_chexpert.Trainers as Train
-from vanilla_medical_classifier_chexpert.Main import handle_dataset, create_base_transform
-import vanilla_medical_classifier_chexpert.DataHandling as DataHandling
+# # Import chexport dataset
+# import vanilla_medical_classifier_chexpert.Testers as Test
+# import vanilla_medical_classifier_chexpert.Trainers as Train
+# from vanilla_medical_classifier_chexpert.Main import handle_dataset, create_base_transform
+# import vanilla_medical_classifier_chexpert.DataHandling as DataHandling
 
 # Import Covid19 model
 from covid19_model import *
@@ -24,8 +24,8 @@ from Metrics.plots import plot_temp_different_bins, ece_iters_plot2, plot_trajec
 from dataset import Chexpert, LogitsLabelsDataset, Covid19, HAM10000
 
 # Import temperature scaling and NLL utilities
-from temperature_scaling import set_temperature2, temperature_scale2, class_temperature_scale2, set_temperature3, bins_temperature_scale_test3, set_temperature4
-from temperature_scaling import bins_temperature_scale_test4, bins_temperature_scale_test5, set_temperature5, MatrixScaling
+from temperature_scaling import binary_temperature_scale_test, set_temperature2, temperature_scale2, class_temperature_scale2, set_temperature3, bins_temperature_scale_test3, set_temperature4
+from temperature_scaling import bins_temperature_scale_test4, bins_temperature_scale_test5, set_temperature5, MatrixScaling, set_temperature_binary
 
 # import torch.multiprocessing
 # torch.multiprocessing.set_sharing_strategy('file_system')
@@ -217,8 +217,8 @@ if __name__ == "__main__":
     # model = DarkCovidNet()
     # model = torch.load('/mnt/dsi_vol1/users/frenkel2/data/calibration/focal_calibration-1/covid19_resnet50_epochs_50,lr_0.003,bs_32.pth')
     
-    # val_set = Covid19('/mnt/dsi_vol1/users/frenkel2/data/calibration/focal_calibration-1/COVID-19', 'val')
-    # test_set = Covid19('/mnt/dsi_vol1/users/frenkel2/data/calibration/focal_calibration-1/COVID-19', 'test')
+    val_set = Covid19('/mnt/dsi_vol1/users/frenkel2/data/calibration/focal_calibration-1/COVID-19', 'val')
+    test_set = Covid19('/mnt/dsi_vol1/users/frenkel2/data/calibration/focal_calibration-1/COVID-19', 'test')
     
     # valloader = DataLoader(val_set, batch_size=batch_size, shuffle=True, num_workers=4)
     # testloader = DataLoader(test_set, batch_size=batch_size, shuffle=False, num_workers=4)
@@ -265,9 +265,9 @@ if __name__ == "__main__":
     # p_ece2 = ece_criterion(logits_test2, labels_test2).item()
     conf_matrix, p_acc, _, predictions, confidences = test_classification_net_logits(logits_test, labels_test)
     print(conf_matrix)
-    if not os.path.isdir(save_plots_loc + '/' + dataset + '_' + model):
-        os.mkdir(save_plots_loc + '/' + dataset + '_' + model)
-    reliability_plot_chexpert(confidences, predictions, labels_test, save_plots_loc, dataset, model, num_bins=num_bins, scaling_related='before', save=True)
+    # if not os.path.isdir(save_plots_loc + '/' + dataset + '_' + model):
+    #     os.mkdir(save_plots_loc + '/' + dataset + '_' + model)
+    # reliability_plot_chexpert(confidences, predictions, labels_test, save_plots_loc, dataset, model, num_bins=num_bins, scaling_related='before', save=True)
     
     if dataset == 'cxr14':
         classes_names = ['Atelectasis', 'Cardiomegaly', 'Effusion', 'Infiltration', 'Mass', 'Nodule', 'Pneumonia', 'Pneumothorax', 'Consolidation', 'Edema', 'Emphysema', 'Fibrosis', 'PT', 'Hernia', 'No findings']
@@ -277,7 +277,7 @@ if __name__ == "__main__":
         classes_names = []
     csece, c_acc, conf_acc_diffs_before = csece_criterion(logits_test, labels_test)
     print(c_acc)
-    ece_class_plot(csece, save_plots_loc, dataset, model, trained_loss, scaling_related='before', unc=True)
+    # ece_class_plot(csece, save_plots_loc, dataset, model, trained_loss, scaling_related='before', unc=True)
     # conf_acc_diff_plot_class(conf_acc_diffs, classes_names, save_plots_loc, dataset, model, trained_loss, divide=args.divide, ds=dataset, version='before')
     
     # weights = vector_scaling(logits_val, p_acc)
@@ -320,6 +320,11 @@ if __name__ == "__main__":
                                                                                             const_temp=const_temp, log=args.log, num_bins=num_bins)
             #bins_T2, single_temp2, bin_boundaries2, many_samples2, best_iter2 = set_temperature3(logits_val2, labels_val2, temp_opt_iters, cross_validate=cross_validation_error, init_temp=init_temp,
             #                                                                                    acc_check=acc_check, const_temp=const_temp, log=args.log, num_bins=num_bins, top_temp=1.2)
+        
+    elif args.method == 'binary':
+        csece_temperature, single_temp = set_temperature_binary(logits_val, labels_val, temp_opt_iters, cross_validate=cross_validation_error,
+                                                            init_temp=init_temp, acc_check=acc_check, const_temp=const_temp, log=args.log, num_bins=num_bins)
+        best_iter = 0
         
     else:    
         if const_temp:
@@ -393,6 +398,11 @@ if __name__ == "__main__":
         ece_class_plot(csece, save_plots_loc, dataset, model, trained_loss, scaling_related='after_bins')
         conf_acc_diff_plot_class(conf_acc_diffs, classes_names, save_plots_loc, dataset, model, trained_loss, divide=args.divide, ds=dataset, version='after_bins')
         
+    elif args.method == 'binary':
+        new_confidences, new_accuracies = binary_temperature_scale_test(logits_test, labels_test, csece_temperature, best_iter)
+        ece = ece_criterion(logits_test, labels_test, accuracies=new_accuracies, confidences=new_confidences).item()
+        ece_single = ece_criterion(temperature_scale2(logits_test, single_temp), labels_test).item()
+    
     else:
         ece = ece_criterion(class_temperature_scale2(logits_test, csece_temperature), labels_test).item()
         ece_single = ece_criterion(temperature_scale2(logits_test, single_temp), labels_test).item()

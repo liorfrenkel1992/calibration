@@ -30,9 +30,16 @@
             "request": "launch",
             "program": "evaluate3.py",
             "console": "integratedTerminal",
-            "args": ["-log", "-iters", "1", "-acc", "--cverror", "ece", "--num-bins", "13", "--method", "vs", "-train_mat_scaling"]
+            "args": ["-log", "-iters", "1", "--cverror", "ece", "--num-bins", "13", "--method", "binary", "-train_mat_scaling", "--ds_name", "ham10000"]
             //"args": ["--dataset", "cifar10", "--model", "resnet110", "--save-path", "/mnt/dsi_vol1/users/frenkel2/data/calibration/trained_models/cifar10/", "--saved_model_name", "resnet110_cross_entropy_350.model", "-log", "-iters", "1", "--dataset-root", "/mnt/dsi_vol1/users/frenkel2/data/calibration/tiny_imagenet/tiny-imagenet-200/", "--save-path-plots", "/mnt/dsi_vol1/users/frenkel2/data/calibration/plots/", "-acc", "-bins", "--logits_file", "probs_resnet110_c10_logits.p", "--cverror", "ece", "--num-bins", "13", "-dists"]
             //"args": ["--dataset", "imagenet", "--model", "densenet161", "--save-path", "/mnt/dsi_vol1/users/frenkel2/data/calibration/trained_models/tiny_imagenet/", "--saved_model_name", "resnet50_cross_entropy_100.model", "-log", "-iters", "1", "--dataset-root", "/mnt/dsi_vol1/users/frenkel2/data/calibration/tiny_imagenet/tiny-imagenet-200/", "--save-path-plots", "/mnt/dsi_vol1/users/frenkel2/data/calibration/plots/", "-acc", "-bins", "--logits_file", "probs_resnet152_SD_SVHN_logits.p", "--cverror", "ece", "--num-bins", "13", "-dists"]
+        },
+        {
+            "name": "binary calibration",
+            "type": "python",
+            "request": "launch",
+            "program": "binary_calibration/binary_calibration.py",
+            "console": "integratedTerminal"
         }
     ]
 }
